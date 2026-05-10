@@ -2,7 +2,17 @@
 {% from "_macros.html" import reaction_badge %}
 
 {% block content %}
-<h1 class="text-xl font-semibold text-slate-700 mb-5">ダッシュボード</h1>
+<header class="mb-7 pt-1">
+  <div class="flex items-center gap-3.5">
+    {# ロゴ: 「イマココ」= 地図の「現在地」マーク。同心円 + ping アニメで“今ここで動いてる感”を出す #}
+    <div class="relative w-9 h-9 shrink-0">
+      <span class="absolute inset-0 rounded-full border-2 border-slate-700"></span>
+      <span class="absolute inset-[12px] rounded-full bg-slate-700"></span>
+      <span class="absolute inset-0 rounded-full bg-slate-500 opacity-30 animate-ping"></span>
+    </div>
+    <h1 class="text-3xl font-bold text-slate-800 tracking-[0.2em] leading-none">イマココ</h1>
+  </div>
+</header>
 
 <section class="mb-7">
   <h2 class="text-xs font-semibold text-slate-500 mb-2">施策の進捗</h2>
