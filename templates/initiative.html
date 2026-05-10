@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, reaction_badge, quit_risk_badge %}
+
+{% block content %}
+<div class="mb-5">
+  <a href="{{ root }}" class="inline-block py-2 text-sm text-slate-500 active:text-slate-800">← ダッシュボード</a>
+  <h1 class="text-xl font-semibold text-slate-700 mt-1">{{ initiative.name }}</h1>
+  {% if initiative.description %}
+  <p class="text-xs text-slate-500 mt-1">{{ initiative.description }}</p>
+  {% endif %}
+</div>
+
+<section class="mb-5 grid grid-cols-4 gap-2">
+  <div class="bg-white rounded-lg border border-slate-200 p-2 text-center">
+    <div class="text-xl font-bold text-amber-700">{{ summary.in_progress }}</div>
+    <div class="text-[10px] text-slate-500">進行中</div>
+  </div>
+  <div class="bg-white rounded-lg border border-slate-200 p-2 text-center">
+    <div class="text-xl font-bold text-emerald-700">{{ summary.done }}</div>
+    <div class="text-[10px] text-slate-500">完了</div>
+  </div>
+  <div class="bg-white rounded-lg border border-slate-200 p-2 text-center">
+    <div class="text-xl font-bold text-rose-600">{{ summary.declined }}</div>
+    <div class="text-[10px] text-slate-500">無理</div>
+  </div>
+  <div class="bg-white rounded-lg border border-slate-200 p-2 text-center">
+    <div class="text-xl font-bold text-slate-400">{{ summary.not_started }}</div>
+    <div class="text-[10px] text-slate-500">未着手</div>
+  </div>
+</section>
+
+<section class="mb-7">
+  <h2 class="text-xs font-semibold text-slate-500 mb-2">キャスト × 進捗(黒服別)</h2>
+  <div class="space-y-2">
+    {% for group in groups %}
+    <details class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <summary class="px-4 py-3 active:bg-slate-50 flex items-center gap-3">
+        <div class="font-medium text-slate-700">{{ group.kurofuku }}</div>
+        <div class="text-xs text-slate-400">{{ group.shift_label }}</div>
+        <div class="ml-auto flex gap-1.5 text-xs font-medium">
+          <span class="text-amber-700">進{{ group.in_progress }}</span>
+          <span class="text-emerald-700">完{{ group.done }}</span>
+          <span class="text-rose-600">無{{ group.declined }}</span>
+          <span class="text-slate-400">未{{ group.not_started }}</span>
+        </div>
+        <span class="chevron text-slate-300 ml-1">›</span>
+      </summary>
+      <div class="border-t border-slate-100 divide-y divide-slate-100">
+        {% for row in group.rows %}
+        <a href="{{ root }}casts/{{ row.cast_id }}/" class="block px-4 py-3 active:bg-slate-50">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <div class="font-medium text-slate-700">{{ row.cast }}</div>
+            {{ status_badge(row.status) }}
+            {% if row.quit_risk %}{{ quit_risk_badge(row.quit_risk) }}{% endif %}
+            <div class="ml-auto text-[10px] text-slate-400">{{ row.updated_short or "" }}</div>
+          </div>
+          {% if row.comment %}
+          <div class="text-sm text-slate-500">{{ row.comment }}</div>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+
+<section>
+  <h2 class="text-xs font-semibold text-slate-500 mb-2">時系列ログ</h2>
+  {% if reports %}
+  {% set recent = reports[:3] %}
+  {% set older = reports[3:] %}
+  <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+    <div class="divide-y divide-slate-100">
+      {% for r in recent %}
+      <div class="px-4 py-3 text-sm">
+        <div class="flex items-center gap-2 mb-1 flex-wrap">
+          <span class="text-xs text-slate-400">{{ r.report_date }}</span>
+          <a href="{{ root }}casts/{{ r.cast_id }}/" class="font-medium text-slate-700 active:underline">{{ r.cast }}</a>
+          <span class="text-xs text-slate-400">by {{ r.kurofuku }}</span>
+          {{ reaction_badge(r.reaction) }}
+        </div>
+        <div class="text-slate-700 whitespace-pre-line">{{ r.content }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if older %}
+    <details class="border-t border-slate-100">
+      <summary class="px-4 py-3 text-sm text-slate-500 active:bg-slate-50 flex items-center">
+        <span>過去のログを見る ({{ older | length }}件)</span>
+        <span class="chevron text-slate-300 ml-2">›</span>
+      </summary>
+      <div class="divide-y divide-slate-100 border-t border-slate-100">
+        {% for r in older %}
+        <div class="px-4 py-3 text-sm">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <span class="text-xs text-slate-400">{{ r.report_date }}</span>
+            <a href="{{ root }}casts/{{ r.cast_id }}/" class="font-medium text-slate-700 active:underline">{{ r.cast }}</a>
+            <span class="text-xs text-slate-400">by {{ r.kurofuku }}</span>
+            {{ reaction_badge(r.reaction) }}
+          </div>
+          <div class="text-slate-700 whitespace-pre-line">{{ r.content }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="text-sm text-slate-400">まだ報告はありません。</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, reaction_badge, quit_risk_badge %}
+
+{% block content %}
+<div class="mb-5">
+  <a href="{{ root }}casts/" class="inline-block py-2 text-sm text-slate-500 active:text-slate-800">← キャスト一覧</a>
+  <div class="flex items-baseline gap-2 mt-1 flex-wrap">
+    <h1 class="text-xl font-semibold text-slate-700">{{ cast.name }}</h1>
+    <div class="text-sm text-slate-500">
+      {{ cast.kurofuku }} / {{ "夜" if cast.shift == "night" else "昼" }}
+    </div>
+    {% if cast.status == "quit" %}
+    <span class="inline-block px-2 py-0.5 text-xs rounded bg-slate-200 text-slate-600">退店済み({{ cast.quit_date }})</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if quit_risk %}
+<section class="mb-5 bg-{{ 'red' if quit_risk.certainty == 'confirmed' else 'orange' }}-50
+                  border border-{{ 'red' if quit_risk.certainty == 'confirmed' else 'orange' }}-200
+                  rounded-lg p-4">
+  <div class="flex items-center gap-2 mb-2 flex-wrap">
+    {{ quit_risk_badge(quit_risk.certainty) }}
+    {% if quit_risk.expected_quit_date %}
+    <span class="text-base font-semibold text-{{ 'red' if quit_risk.certainty == 'confirmed' else 'orange' }}-700">
+      {{ quit_risk.expected_quit_date }}
+    </span>
+    {% else %}
+    <span class="text-sm text-slate-500">日付未定</span>
+    {% endif %}
+  </div>
+  {% if quit_risk.reason %}
+  <p class="text-sm text-slate-700 whitespace-pre-line">{{ quit_risk.reason }}</p>
+  {% endif %}
+  <div class="text-[11px] text-slate-400 mt-2">最終更新: {{ quit_risk.updated_at }}</div>
+</section>
+{% endif %}
+
+{% if cast.status != "quit" %}
+<section class="mb-6">
+  <h2 class="text-xs font-semibold text-slate-500 mb-2">各施策のステータス</h2>
+  <div class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+    {% for s in statuses %}
+    <a href="{{ root }}initiatives/{{ s.initiative_id }}/"
+       class="block px-4 py-3 active:bg-slate-50">
+      <div class="flex items-center gap-2 mb-1">
+        <div class="font-medium text-slate-700 text-sm">{{ s.initiative_name }}</div>
+        {{ status_badge(s.status) }}
+        <div class="ml-auto text-[10px] text-slate-400">{{ s.updated_short or "" }}</div>
+      </div>
+      {% if s.comment %}
+      <div class="text-sm text-slate-500">{{ s.comment }}</div>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section>
+  <h2 class="text-xs font-semibold text-slate-500 mb-2">報告ログ</h2>
+  {% if reports %}
+  {% set recent = reports[:5] %}
+  {% set older = reports[5:] %}
+  <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+    <div class="divide-y divide-slate-100">
+      {% for r in recent %}
+      <div class="px-4 py-3 text-sm">
+        <div class="flex items-center gap-2 mb-1 flex-wrap">
+          <span class="text-xs text-slate-400">{{ r.report_date }}</span>
+          <a href="{{ root }}initiatives/{{ r.initiative_id }}/" class="text-xs font-medium text-slate-600 active:underline">{{ r.initiative }}</a>
+          <span class="text-xs text-slate-400">by {{ r.kurofuku }}</span>
+          {{ reaction_badge(r.reaction) }}
+        </div>
+        <div class="text-slate-700 whitespace-pre-line">{{ r.content }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if older %}
+    <details class="border-t border-slate-100">
+      <summary class="px-4 py-3 text-sm text-slate-500 active:bg-slate-50 flex items-center">
+        <span>過去のログを見る ({{ older | length }}件)</span>
+        <span class="chevron text-slate-300 ml-2">›</span>
+      </summary>
+      <div class="divide-y divide-slate-100 border-t border-slate-100">
+        {% for r in older %}
+        <div class="px-4 py-3 text-sm">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <span class="text-xs text-slate-400">{{ r.report_date }}</span>
+            <a href="{{ root }}initiatives/{{ r.initiative_id }}/" class="text-xs font-medium text-slate-600 active:underline">{{ r.initiative }}</a>
+            <span class="text-xs text-slate-400">by {{ r.kurofuku }}</span>
+            {{ reaction_badge(r.reaction) }}
+          </div>
+          <div class="text-slate-700 whitespace-pre-line">{{ r.content }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="text-sm text-slate-400">まだ報告はありません。</p>
+  {% endif %}
+</section>
+{% endblock %}

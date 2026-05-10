@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#f8fafc">
+  <title>{{ title }} | 施策進捗</title>
+
+  <!-- PWA: ホーム画面に追加でアプリのように開く -->
+  <link rel="manifest" href="{{ root }}manifest.webmanifest">
+  <link rel="apple-touch-icon" href="{{ root }}icons/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="施策進捗">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* iOS Safari の慣性スクロールでズレないように */
+    html { -webkit-text-size-adjust: 100%; }
+
+    /* details 既定の三角マーカーを消す。代わりに各 summary 内に chevron 配置 */
+    summary { list-style: none; cursor: pointer; user-select: none; -webkit-user-select: none; }
+    summary::-webkit-details-marker { display: none; }
+    .chevron { display: inline-block; transition: transform 0.15s; }
+    details[open] > summary .chevron { transform: rotate(90deg); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <!-- パスワードゲート -->
+  <div id="password-gate" class="fixed inset-0 z-50 bg-slate-900/95 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-lg p-6 w-full max-w-sm shadow-xl">
+      <h2 class="text-base font-semibold mb-4 text-slate-700">パスワードを入力してください</h2>
+      <form id="password-form">
+        <input type="password" id="password-input" autocomplete="current-password"
+               class="w-full border border-slate-300 rounded px-3 py-3 mb-3 text-base focus:outline-none focus:ring-2 focus:ring-slate-400">
+        <button type="submit"
+                class="w-full bg-slate-700 active:bg-slate-800 text-white py-3 rounded text-base font-medium">
+          入る
+        </button>
+        <p id="password-error" class="text-red-600 text-sm mt-2 hidden">パスワードが違います</p>
+      </form>
+    </div>
+  </div>
+  <script>
+    (async function () {
+      const EXPECTED_HASH = {{ password_hash | tojson }};
+      const STORAGE_KEY = "shisaku_pass_ok_v1";
+      async function sha256Hex(s) {
+        const enc = new TextEncoder().encode(s);
+        const buf = await crypto.subtle.digest("SHA-256", enc);
+        return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+      }
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored === EXPECTED_HASH) return;
+      const gate = document.getElementById("password-gate");
+      gate.classList.remove("hidden");
+      gate.classList.add("flex");
+      document.body.style.overflow = "hidden";
+      document.getElementById("password-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const input = document.getElementById("password-input").value;
+        const hash = await sha256Hex(input);
+        if (hash === EXPECTED_HASH) {
+          localStorage.setItem(STORAGE_KEY, hash);
+          gate.classList.add("hidden");
+          gate.classList.remove("flex");
+          document.body.style.overflow = "";
+        } else {
+          document.getElementById("password-error").classList.remove("hidden");
+        }
+      });
+    })();
+  </script>
+
+  <main class="max-w-md mx-auto px-4 py-5 pb-28">
+    {% block content %}{% endblock %}
+    <p class="text-center text-[11px] text-slate-400 mt-10">最終更新: {{ build_time }}</p>
+  </main>
+
+  {% if not hide_nav %}
+  {%- set is_home = current_page in ('index', 'initiative') -%}
+  {%- set is_casts = current_page in ('casts', 'cast') -%}
+  {%- set is_quit = current_page == 'quit_risks' -%}
+  {%- set is_kuro = current_page == 'kurofukus' -%}
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40"
+       style="padding-bottom: env(safe-area-inset-bottom);">
+    <div class="max-w-md mx-auto grid grid-cols-4">
+      <a href="{{ root }}"
+         class="flex items-center justify-center py-4 text-sm
+                {{ 'text-slate-900 font-semibold' if is_home else 'text-slate-400 active:text-slate-700' }}">ホーム</a>
+      <a href="{{ root }}casts/"
+         class="flex items-center justify-center py-4 text-sm
+                {{ 'text-slate-900 font-semibold' if is_casts else 'text-slate-400 active:text-slate-700' }}">キャスト</a>
+      <a href="{{ root }}quit-risks/"
+         class="flex items-center justify-center py-4 text-sm
+                {{ 'text-slate-900 font-semibold' if is_quit else 'text-slate-400 active:text-slate-700' }}">退店</a>
+      <a href="{{ root }}kurofukus/"
+         class="flex items-center justify-center py-4 text-sm
+                {{ 'text-slate-900 font-semibold' if is_kuro else 'text-slate-400 active:text-slate-700' }}">黒服</a>
+    </div>
+  </nav>
+  {% endif %}
+</body>
+</html>

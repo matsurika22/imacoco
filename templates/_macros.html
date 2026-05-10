@@ -1,0 +1,32 @@
+{# 各施策のステータスバッジ。declined(無理だった)は完了の駄目パターン扱い。 #}
+{% macro status_badge(status) -%}
+  {% if status == 'done' -%}
+    <span class="inline-block px-2 py-0.5 text-xs rounded bg-emerald-100 text-emerald-800">完了</span>
+  {%- elif status == 'in_progress' -%}
+    <span class="inline-block px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-800">進行中</span>
+  {%- elif status == 'declined' -%}
+    <span class="inline-block px-2 py-0.5 text-xs rounded bg-rose-50 text-rose-700 border border-rose-200">無理だった</span>
+  {%- else -%}
+    <span class="inline-block px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-500">未着手</span>
+  {%- endif %}
+{%- endmacro %}
+
+{# reaction バッジ。NULL のときは何も出さない #}
+{% macro reaction_badge(reaction) -%}
+  {% if reaction == 'positive' -%}
+    <span class="inline-block px-1.5 py-0.5 text-[10px] rounded bg-emerald-50 text-emerald-700 border border-emerald-200">+</span>
+  {%- elif reaction == 'negative' -%}
+    <span class="inline-block px-1.5 py-0.5 text-[10px] rounded bg-rose-50 text-rose-700 border border-rose-200">-</span>
+  {%- elif reaction == 'neutral' -%}
+    <span class="inline-block px-1.5 py-0.5 text-[10px] rounded bg-slate-100 text-slate-500 border border-slate-200">±</span>
+  {%- endif %}
+{%- endmacro %}
+
+{# 退店リスク バッジ #}
+{% macro quit_risk_badge(certainty) -%}
+  {% if certainty == 'confirmed' -%}
+    <span class="inline-block px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 border border-red-200">退店確定</span>
+  {%- elif certainty == 'likely' -%}
+    <span class="inline-block px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700 border border-orange-200">退店リスク</span>
+  {%- endif %}
+{%- endmacro %}
