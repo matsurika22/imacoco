@@ -373,16 +373,19 @@ def context_kurofukus(data, today):
         casts_touched = len({r["cast_id"] for r in my_reports})
         initiatives_touched = len({r["initiative_id"] for r in my_reports})
 
-        # 接触率: 担当キャスト × A群施策 のユニーク組み合わせのうち、
-        # 全期間で1回以上報告のあった組み合わせの割合。同キャスト同施策で複数回でも 1。
-        touched_pairs = {
-            (r["cast_id"], r["initiative_id"])
-            for r in data["reports"]
-            if r["cast_id"] in assigned_ids and r["initiative_id"] in cast_initiative_ids
+        # アクション終了率: 担当キャスト × A群施策 のうち、これ以上できることがない
+        # 状態(done / declined)に至ったペアの数 / (担当人数 × A群施策数)。
+        # 「進行中」「未着手」は終了とみなさない。
+        closed_pairs = {
+            (s["cast_id"], s["initiative_id"])
+            for s in data["statuses"]
+            if s["cast_id"] in assigned_ids
+            and s["initiative_id"] in cast_initiative_ids
+            and s["status"] in ("done", "declined")
         }
         denom = assigned_count * cast_initiative_count
-        rate = len(touched_pairs) / denom if denom > 0 else 0.0
-        # 100% コンプリートのみ緑。それ以外は「まだ全部はやっていない」の同列扱いで黒。
+        rate = len(closed_pairs) / denom if denom > 0 else 0.0
+        # 100% コンプリート(全ペア done/declined)のみ緑。それ以外は同列扱いで黒。
         color = "green" if rate >= 1.0 else "black"
 
         views.append({
