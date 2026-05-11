@@ -268,21 +268,19 @@ def context_initiative(data, ini, today):
 def context_casts(data):
     active_casts = [c for c in data["casts"] if c["status"] == "active"]
 
-    groups_map = {}
+    rows = []
     for c in active_casts:
-        groups_map.setdefault((c["kurofuku"], c["shift"]), []).append(c)
-
-    groups = []
-    for (kuro, shift), casts in sorted(groups_map.items(), key=lambda x: (0 if x[0][1] == "night" else 1, x[0][0])):
-        casts_with_qr = []
-        for c in sorted(casts, key=lambda x: x["name"]):
-            qr = quit_risk_for(data["quit_risks"], c["id"])
-            casts_with_qr.append({**c, "quit_risk": qr["certainty"] if qr else None})
-        groups.append({
-            "kurofuku": kuro,
-            "shift_label": "夜" if shift == "night" else "昼",
-            "casts": casts_with_qr,
+        cast_reports = [r for r in data["reports"] if r["cast_id"] == c["id"]]
+        last_date = max((r["report_date"] for r in cast_reports), default=None)
+        qr = quit_risk_for(data["quit_risks"], c["id"])
+        rows.append({
+            **c,
+            "last_date": last_date,
+            "last_short": short_date(last_date) if last_date else "",
+            "quit_risk": qr["certainty"] if qr else None,
         })
+    # 最終アクションが新しい順、未接触(last_date=None)は最下位
+    rows.sort(key=lambda r: r["last_date"] or "0000-00-00", reverse=True)
 
     quit_casts = sorted(
         (c for c in data["casts"] if c["status"] == "quit"),
@@ -292,7 +290,7 @@ def context_casts(data):
 
     return {
         "title": "キャスト一覧",
-        "groups": groups,
+        "casts": rows,
         "quit_casts": quit_casts,
     }
 
@@ -397,6 +395,9 @@ def context_kurofukus(data, today):
             "contact_rate_pct": round(rate * 100),
             "color": color,
         })
+
+    # 担当キャスト人数が多い順
+    views.sort(key=lambda v: v["assigned_count"], reverse=True)
 
     return {
         "title": "黒服別",

@@ -14,25 +14,20 @@
   </p>
 </div>
 
-<div id="cast-groups">
-{% for group in groups %}
-<section class="mb-5" data-group>
-  <h2 class="text-sm font-semibold text-slate-600 mb-2 px-1">
-    {{ group.kurofuku }}
-    <span class="text-xs font-normal text-slate-400">({{ group.shift_label }} / <span data-group-count>{{ group.casts | length }}</span>人)</span>
-  </h2>
-  <div class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-    {% for c in group.casts %}
-    <a href="{{ root }}casts/{{ c.id }}/" data-cast="{{ c.name }}"
-       class="flex items-center gap-3 px-4 py-3 active:bg-slate-50">
-      <div class="font-medium text-slate-700 text-base">{{ c.name }}</div>
-      {% if c.quit_risk %}{{ quit_risk_badge(c.quit_risk) }}{% endif %}
-      <div class="ml-auto text-slate-300">›</div>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endfor %}
+<div class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+  {% for c in casts %}
+  <a href="{{ root }}casts/{{ c.id }}/" data-cast="{{ c.name }}"
+     class="flex items-center gap-3 px-4 py-3 active:bg-slate-50">
+    <div class="font-medium text-slate-700 text-base">{{ c.name }}</div>
+    {% if c.quit_risk %}{{ quit_risk_badge(c.quit_risk) }}{% endif %}
+    <div class="ml-auto flex items-center gap-2">
+      <span class="text-xs {% if c.last_short %}text-slate-400{% else %}text-rose-400{% endif %}">
+        {% if c.last_short %}{{ c.last_short }}{% else %}未接触{% endif %}
+      </span>
+      <div class="text-slate-300">›</div>
+    </div>
+  </a>
+  {% endfor %}
 </div>
 
 {% if quit_casts %}
@@ -56,30 +51,22 @@
 {% endif %}
 
 <script>
-  // キャスト名インクリメンタルフィルタ。マッチしないキャストと、
-  // すべて非表示になったグループも丸ごと隠す。
+  // キャスト名インクリメンタルフィルタ。
   (function () {
     const input = document.getElementById("cast-search");
     const empty = document.getElementById("cast-search-empty");
-    const groups = document.querySelectorAll('[data-group]');
+    const items = document.querySelectorAll('[data-cast]');
 
     function applyFilter() {
       const q = input.value.trim();
-      let totalVisible = 0;
-      groups.forEach(group => {
-        let visibleInGroup = 0;
-        group.querySelectorAll('[data-cast]').forEach(el => {
-          const name = el.getAttribute("data-cast");
-          const match = !q || name.includes(q);
-          el.style.display = match ? "" : "none";
-          if (match) visibleInGroup++;
-        });
-        const countEl = group.querySelector('[data-group-count]');
-        if (countEl) countEl.textContent = visibleInGroup;
-        group.style.display = visibleInGroup === 0 ? "none" : "";
-        totalVisible += visibleInGroup;
+      let visible = 0;
+      items.forEach(el => {
+        const name = el.getAttribute("data-cast");
+        const match = !q || name.includes(q);
+        el.style.display = match ? "" : "none";
+        if (match) visible++;
       });
-      empty.classList.toggle("hidden", totalVisible > 0 || !q);
+      empty.classList.toggle("hidden", visible > 0 || !q);
     }
     input.addEventListener("input", applyFilter);
   })();
