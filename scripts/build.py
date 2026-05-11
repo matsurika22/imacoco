@@ -388,40 +388,35 @@ def context_kurofukus(data, today):
         # 100% コンプリート(全ペア done/declined)のみ緑。それ以外は同列扱いで黒。
         color = "green" if rate >= 1.0 else "black"
 
-        # 進行中ペア数: status='in_progress' のペア
-        in_progress_count = sum(
-            1 for s in data["statuses"]
-            if s["cast_id"] in assigned_ids
-            and s["initiative_id"] in cast_initiative_ids
-            and s["status"] == "in_progress"
-        )
+        # 「未接触」「完了」「進行中」を**キャスト単位**で算出し、合計が担当数になるよう揃える。
+        # ・未接触 = A群すべて not_started(動かしていない)
+        # ・完了   = 追える施策(バースデー除く)が全部 done/declined。バースデーは年1回しか
+        #            動かないため判定から除外(2026-05-11 ユーザー合意)
+        # ・進行中 = それ以外(= 担当 - 未接触 - 完了)
+        non_birthday_ini_ids = {
+            i["id"] for i in data["initiatives"]
+            if i["category"] == "cast" and i["name"] != "バースデーイベント開催のお願い"
+        }
 
-        # 未接触キャスト数: A群施策すべてが not_started(動かしていない)担当キャスト
-        # ※ 退店リスクの報告だけ入っているキャストも「A群を動かせていない」として未接触扱い
+        def _status_of(cast_id, ini_id):
+            s = next(
+                (x for x in data["statuses"]
+                 if x["cast_id"] == cast_id and x["initiative_id"] == ini_id),
+                None,
+            )
+            return s["status"] if s else "not_started"
+
         def _is_a_untouched(cast_id):
-            for ini_id in cast_initiative_ids:
-                s = next(
-                    (x for x in data["statuses"]
-                     if x["cast_id"] == cast_id and x["initiative_id"] == ini_id),
-                    None,
-                )
-                if s and s["status"] != "not_started":
-                    return False
-            return True
-        untouched_count = sum(1 for c in assigned if _is_a_untouched(c["id"]))
+            return all(_status_of(cast_id, ini_id) == "not_started"
+                       for ini_id in cast_initiative_ids)
 
-        # コンプ済キャスト数: 全A群施策が done/declined になった担当キャスト
         def _is_completed(cast_id):
-            for ini_id in cast_initiative_ids:
-                s = next(
-                    (x for x in data["statuses"]
-                     if x["cast_id"] == cast_id and x["initiative_id"] == ini_id),
-                    None,
-                )
-                if not s or s["status"] not in ("done", "declined"):
-                    return False
-            return True
+            return all(_status_of(cast_id, ini_id) in ("done", "declined")
+                       for ini_id in non_birthday_ini_ids)
+
+        untouched_count = sum(1 for c in assigned if _is_a_untouched(c["id"]))
         completed_count = sum(1 for c in assigned if _is_completed(c["id"]))
+        in_progress_count = assigned_count - untouched_count - completed_count
 
         views.append({
             "id": k["id"],
