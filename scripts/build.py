@@ -361,12 +361,14 @@ def context_kurofukus(data, today):
     month_start, month_end = month_bounds(today)
     # 「今月」= 暦月。 month_start <= report_date < month_end
     active_casts = [c for c in data["casts"] if c["status"] == "active"]
+    # A群施策(category='cast')の数。退店リスクは含まない(報告が必ず発生する性質ではないため)
+    cast_initiative_count = len([i for i in data["initiatives"] if i["category"] == "cast"])
 
     views = []
     for k in data["kurofukus"]:
         # 担当アクティブキャスト数
         assigned = [c for c in active_casts if c["kurofuku"] == k["name"]]
-        assigned_ids = {c["id"] for c in assigned}
+        assigned_count = len(assigned)
         # 今月の reports(その黒服 by)
         month_reports = [
             r for r in data["reports"]
@@ -374,16 +376,12 @@ def context_kurofukus(data, today):
             and month_start.isoformat() <= r["report_date"] < month_end.isoformat()
         ]
         report_count = len(month_reports)
-        casts_touched_set = {r["cast_id"] for r in month_reports}
-        casts_touched = len(casts_touched_set)
+        casts_touched = len({r["cast_id"] for r in month_reports})
         initiatives_touched = len({r["initiative_id"] for r in month_reports})
-        # 接触率: 担当アクティブキャスト中、今月触れた割合
-        # ※ 担当外キャストへの報告も report_count には入るが、接触率は担当ベースで集計
-        casts_touched_assigned = len(casts_touched_set & assigned_ids)
-        if assigned:
-            rate = casts_touched_assigned / len(assigned)
-        else:
-            rate = 0.0
+        # 接触率: 今月の報告件数 / (担当人数 × A群施策数)
+        # ※ 退店リスクは「必ず発生するわけではない」性質の施策なので分母から除外
+        denom = assigned_count * cast_initiative_count
+        rate = report_count / denom if denom > 0 else 0.0
         if rate >= 0.7:
             color = "green"
         elif rate >= 0.3:
@@ -391,8 +389,9 @@ def context_kurofukus(data, today):
         else:
             color = "red"
         views.append({
+            "id": k["id"],
             "name": k["name"],
-            "assigned_count": len(assigned),
+            "assigned_count": assigned_count,
             "report_count": report_count,
             "casts_touched": casts_touched,
             "initiatives_touched": initiatives_touched,
@@ -404,6 +403,53 @@ def context_kurofukus(data, today):
         "title": "黒服別",
         "kurofukus": views,
         "month_label": f"{month_start.year}年 {month_start.month}月",
+        "cast_initiative_count": cast_initiative_count,
+    }
+
+
+def context_kurofuku(data, kurofuku, today):
+    """単一黒服ページ: 担当キャスト一覧 + 各 A 群施策ステータス + 最終接触日順ソート。"""
+    cast_initiatives = [i for i in data["initiatives"] if i["category"] == "cast"]
+    assigned_active = [c for c in data["casts"]
+                       if c["kurofuku"] == kurofuku["name"] and c["status"] == "active"]
+    assigned_quit = sorted(
+        (c for c in data["casts"]
+         if c["kurofuku"] == kurofuku["name"] and c["status"] == "quit"),
+        key=lambda x: x["quit_date"] or "", reverse=True,
+    )
+
+    rows = []
+    for c in assigned_active:
+        cast_reports = [r for r in data["reports"] if r["cast_id"] == c["id"]]
+        last_date = max((r["report_date"] for r in cast_reports), default=None)
+        statuses = []
+        for ini in cast_initiatives:
+            s = status_for(data["statuses"], c["id"], ini["id"])
+            statuses.append({
+                "initiative_id": ini["id"],
+                "initiative_name": ini["name"],
+                "status": s["status"] if s else "not_started",
+            })
+        qr = quit_risk_for(data["quit_risks"], c["id"])
+        rows.append({
+            "cast_id": c["id"],
+            "cast": c["name"],
+            "shift": c["shift"],
+            "shift_label": "夜" if c["shift"] == "night" else "昼",
+            "last_date": last_date,
+            "last_short": short_date(last_date) if last_date else "",
+            "statuses": statuses,
+            "quit_risk": qr["certainty"] if qr else None,
+        })
+
+    # 最終接触が新しい順、未接触(last_date=None)は最下位
+    rows.sort(key=lambda r: r["last_date"] or "0000-00-00", reverse=True)
+
+    return {
+        "title": f"{kurofuku['name']} 担当",
+        "kurofuku_name": kurofuku["name"],
+        "active_rows": rows,
+        "quit_casts": assigned_quit,
     }
 
 
@@ -554,6 +600,13 @@ def main() -> int:
     render(env, "kurofukus.html", DIST_DIR / "kurofukus" / "index.html",
            context_kurofukus(data, today),
            "../", pw_hash, build_time, current_page="kurofukus")
+
+    # /kurofukus/{id}/
+    for k in data["kurofukus"]:
+        render(env, "kurofuku.html",
+               DIST_DIR / "kurofukus" / str(k["id"]) / "index.html",
+               context_kurofuku(data, k, today),
+               "../../", pw_hash, build_time, current_page="kurofukus")
 
     # /restaurants/  (ナビには出さない、URL直打ち専用)
     render(env, "restaurants.html", DIST_DIR / "restaurants" / "index.html",

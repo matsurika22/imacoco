@@ -4,15 +4,16 @@
 <h1 class="text-xl font-semibold text-slate-700 mb-2">黒服別</h1>
 <p class="text-xs text-slate-500 mb-5">
   {{ month_label }}<br>
-  接触率 = 今月触れたアクティブキャスト ÷ 担当数。70%以上=緑 / 30〜70%=黄 / 30%未満=赤。
+  接触率 = 今月の報告件数 ÷ (担当人数 × A群施策{{ cast_initiative_count }}件)。70%以上=緑 / 30〜70%=黄 / 30%未満=赤。
 </p>
 
 <div class="space-y-3">
   {% for k in kurofukus %}
-  <div class="bg-white rounded-lg border border-slate-200 p-4
-              {% if k.color == 'green' %}border-l-4 border-l-emerald-400
-              {% elif k.color == 'yellow' %}border-l-4 border-l-amber-400
-              {% else %}border-l-4 border-l-rose-400{% endif %}">
+  <a href="{{ root }}kurofukus/{{ k.id }}/"
+     class="block bg-white rounded-lg border border-slate-200 p-4 active:bg-slate-50
+            {% if k.color == 'green' %}border-l-4 border-l-emerald-400
+            {% elif k.color == 'yellow' %}border-l-4 border-l-amber-400
+            {% else %}border-l-4 border-l-rose-400{% endif %}">
     <div class="flex items-baseline gap-2 mb-3">
       <h2 class="text-base font-semibold text-slate-700">{{ k.name }}</h2>
       <span class="text-xs text-slate-400">担当 {{ k.assigned_count }}名</span>
@@ -37,7 +38,7 @@
         <div class="text-[11px] text-slate-500 mt-0.5">触れた施策</div>
       </div>
     </div>
-  </div>
+  </a>
   {% endfor %}
 </div>
 {% endblock %}

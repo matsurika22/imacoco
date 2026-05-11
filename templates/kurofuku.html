@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, quit_risk_badge %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ root }}kurofukus/" class="text-xs text-slate-400 active:text-slate-600">‹ 黒服別</a>
+  <h1 class="text-xl font-semibold text-slate-700 mt-1">{{ kurofuku_name }} 担当</h1>
+  <p class="text-xs text-slate-500 mt-1">
+    {{ active_rows | length }}名 / 最終接触が新しい順、未接触は最下位
+  </p>
+</div>
+
+{% if active_rows %}
+<div class="space-y-2">
+  {% for r in active_rows %}
+  <a href="{{ root }}casts/{{ r.cast_id }}/"
+     class="block bg-white rounded-lg border border-slate-200 px-4 py-3 active:bg-slate-50">
+    <div class="flex items-baseline gap-2 mb-2 flex-wrap">
+      <span class="font-medium text-slate-700 text-base">{{ r.cast }}</span>
+      <span class="text-[11px] text-slate-400">{{ r.shift_label }}</span>
+      {% if r.quit_risk %}{{ quit_risk_badge(r.quit_risk) }}{% endif %}
+      <span class="ml-auto text-xs {% if r.last_short %}text-slate-500{% else %}text-rose-500{% endif %}">
+        {% if r.last_short %}最終 {{ r.last_short }}{% else %}未接触{% endif %}
+      </span>
+    </div>
+    <div class="flex flex-wrap gap-1">
+      {% for s in r.statuses %}
+      <span class="inline-flex items-center gap-1 text-[11px] text-slate-500">
+        <span class="text-slate-400">{{ s.initiative_name }}</span>
+        {{ status_badge(s.status) }}
+      </span>
+      {% endfor %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-sm text-slate-400">担当アクティブキャストはいません。</p>
+{% endif %}
+
+{% if quit_casts %}
+<section class="mt-6">
+  <details class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+    <summary class="px-4 py-3 text-sm font-medium text-slate-500 active:bg-slate-50 flex items-center">
+      <span>退店済み ({{ quit_casts | length }}人)</span>
+      <span class="chevron text-slate-300 ml-2">›</span>
+    </summary>
+    <div class="divide-y divide-slate-100 border-t border-slate-100">
+      {% for c in quit_casts %}
+      <a href="{{ root }}casts/{{ c.id }}/" class="flex items-center gap-3 px-4 py-3 text-sm text-slate-400 active:bg-slate-50">
+        <div class="font-medium">{{ c.name }}</div>
+        <div class="text-xs">{{ "夜" if c.shift == "night" else "昼" }}</div>
+        <div class="ml-auto text-xs">{{ c.quit_date or "(不明)" }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </details>
+</section>
+{% endif %}
+{% endblock %}
