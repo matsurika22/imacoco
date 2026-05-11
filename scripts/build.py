@@ -391,12 +391,8 @@ def context_kurofukus(data, today):
         }
         denom = assigned_count * cast_initiative_count
         rate = len(touched_pairs) / denom if denom > 0 else 0.0
-        if rate >= 0.7:
-            color = "green"
-        elif rate >= 0.3:
-            color = "yellow"
-        else:
-            color = "red"
+        # 100% コンプリートのみ緑。それ以外は「まだ全部はやっていない」の同列扱いで黒。
+        color = "green" if rate >= 1.0 else "black"
 
         views.append({
             "id": k["id"],

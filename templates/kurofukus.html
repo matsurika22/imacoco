@@ -4,23 +4,19 @@
 <h1 class="text-xl font-semibold text-slate-700 mb-2">黒服別</h1>
 <p class="text-xs text-slate-500 mb-5">
   接触率(全期間) = 担当キャスト × A群施策{{ cast_initiative_count }}件のうち1回以上アクションした組合せの割合。
-  下の数字は{{ month_label }}の動き。70%以上=緑 / 30〜70%=黄 / 30%未満=赤。
+  下の数字は{{ month_label }}の動き。100%(コンプリート)=緑、それ以外は同列扱い。
 </p>
 
 <div class="space-y-3">
   {% for k in kurofukus %}
   <a href="{{ root }}kurofukus/{{ k.id }}/"
      class="block bg-white rounded-lg border border-slate-200 p-4 active:bg-slate-50
-            {% if k.color == 'green' %}border-l-4 border-l-emerald-400
-            {% elif k.color == 'yellow' %}border-l-4 border-l-amber-400
-            {% else %}border-l-4 border-l-rose-400{% endif %}">
+            border-l-4 {% if k.color == 'green' %}border-l-emerald-500{% else %}border-l-slate-800{% endif %}">
     <div class="flex items-baseline gap-2 mb-3">
       <h2 class="text-base font-semibold text-slate-700">{{ k.name }}</h2>
       <span class="text-xs text-slate-400">担当 {{ k.assigned_count }}名</span>
       <span class="ml-auto text-base font-bold
-                   {% if k.color == 'green' %}text-emerald-700
-                   {% elif k.color == 'yellow' %}text-amber-700
-                   {% else %}text-rose-700{% endif %}">
+                   {% if k.color == 'green' %}text-emerald-700{% else %}text-slate-800{% endif %}">
         {{ k.contact_rate_pct }}%
       </span>
     </div>
