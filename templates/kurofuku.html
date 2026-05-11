@@ -15,7 +15,7 @@
   {% for r in active_rows %}
   <a href="{{ root }}casts/{{ r.cast_id }}/"
      class="block bg-white rounded-lg border border-slate-200 px-4 py-3 active:bg-slate-50">
-    <div class="flex items-baseline gap-2 mb-2 flex-wrap">
+    <div class="flex items-baseline gap-2 mb-3 flex-wrap">
       <span class="font-medium text-slate-700 text-base">{{ r.cast }}</span>
       <span class="text-[11px] text-slate-400">{{ r.shift_label }}</span>
       {% if r.quit_risk %}{{ quit_risk_badge(r.quit_risk) }}{% endif %}
@@ -23,12 +23,12 @@
         {% if r.last_short %}最終 {{ r.last_short }}{% else %}未接触{% endif %}
       </span>
     </div>
-    <div class="flex flex-wrap gap-1">
+    <div class="divide-y divide-slate-100 border-t border-slate-100">
       {% for s in r.statuses %}
-      <span class="inline-flex items-center gap-1 text-[11px] text-slate-500">
-        <span class="text-slate-400">{{ s.initiative_name }}</span>
+      <div class="flex items-center justify-between gap-2 py-1.5">
+        <span class="text-xs text-slate-600">{{ s.initiative_name }}</span>
         {{ status_badge(s.status) }}
-      </span>
+      </div>
       {% endfor %}
     </div>
   </a>
