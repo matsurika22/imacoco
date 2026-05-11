@@ -8,7 +8,7 @@
   <a href="{{ root }}kurofukus/{{ k.id }}/"
      class="block bg-white rounded-lg border border-slate-200 px-4 py-3 active:bg-slate-50
             border-l-4 {% if k.color == 'green' %}border-l-emerald-500{% else %}border-l-slate-800{% endif %}">
-    <div class="flex items-baseline gap-3">
+    <div class="flex items-baseline gap-3 mb-2">
       <h2 class="text-base font-semibold text-slate-700">{{ k.name }}</h2>
       <span class="text-sm text-slate-600">
         担当 <span class="font-semibold text-slate-800 tabular-nums">{{ k.assigned_count }}</span>
@@ -19,6 +19,20 @@
       <span class="ml-auto text-base font-bold tabular-nums
                    {% if k.color == 'green' %}text-emerald-700{% else %}text-slate-800{% endif %}">
         {{ k.contact_rate_pct }}%
+      </span>
+    </div>
+    <div class="flex gap-3 text-xs pt-2 border-t border-slate-100">
+      <span>
+        <span class="text-slate-400">進行中</span>
+        <span class="font-semibold tabular-nums {% if k.in_progress_count > 0 %}text-amber-700{% else %}text-slate-300{% endif %}">{{ k.in_progress_count }}</span>
+      </span>
+      <span>
+        <span class="text-slate-400">未接触</span>
+        <span class="font-semibold tabular-nums {% if k.untouched_count > 0 %}text-rose-600{% else %}text-slate-300{% endif %}">{{ k.untouched_count }}</span>
+      </span>
+      <span>
+        <span class="text-slate-400">コンプ済</span>
+        <span class="font-semibold tabular-nums {% if k.completed_count > 0 %}text-emerald-700{% else %}text-slate-300{% endif %}">{{ k.completed_count }}</span>
       </span>
     </div>
   </a>
