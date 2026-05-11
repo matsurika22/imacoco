@@ -37,11 +37,11 @@
       <summary class="px-4 py-3 active:bg-slate-50 flex items-center gap-3">
         <div class="font-medium text-slate-700">{{ group.kurofuku }}</div>
         <div class="text-xs text-slate-400">{{ group.shift_label }}</div>
-        <div class="ml-auto flex gap-1.5 text-xs font-medium">
-          <span class="text-amber-700">進{{ group.in_progress }}</span>
-          <span class="text-emerald-700">完{{ group.done }}</span>
-          <span class="text-rose-600">無{{ group.declined }}</span>
-          <span class="text-slate-400">未{{ group.not_started }}</span>
+        <div class="ml-auto flex gap-2.5 text-xs font-medium tabular-nums">
+          <span class="{% if group.in_progress > 0 %}text-amber-700{% else %}text-slate-300{% endif %}">進 {{ group.in_progress }}</span>
+          <span class="{% if group.done > 0 %}text-emerald-700{% else %}text-slate-300{% endif %}">完 {{ group.done }}</span>
+          <span class="{% if group.declined > 0 %}text-rose-600{% else %}text-slate-300{% endif %}">無 {{ group.declined }}</span>
+          <span class="{% if group.not_started > 0 %}text-slate-500{% else %}text-slate-300{% endif %}">未 {{ group.not_started }}</span>
         </div>
         <span class="chevron text-slate-300 ml-1">›</span>
       </summary>
