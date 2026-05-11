@@ -358,8 +358,6 @@ def context_quit_risks(data, today):
 
 
 def context_kurofukus(data, today):
-    month_start, month_end = month_bounds(today)
-    # 「今月」= 暦月。月別カウンタ(報告件数 / 触れたキャスト / 触れた施策)に使う。
     active_casts = [c for c in data["casts"] if c["status"] == "active"]
     # A群施策(category='cast')。退店リスクは「必ず発生する性質ではない」ため分母から除外。
     cast_initiative_ids = {i["id"] for i in data["initiatives"] if i["category"] == "cast"}
@@ -367,20 +365,15 @@ def context_kurofukus(data, today):
 
     views = []
     for k in data["kurofukus"]:
-        # 担当アクティブキャスト数
         assigned = [c for c in active_casts if c["kurofuku"] == k["name"]]
         assigned_ids = {c["id"] for c in assigned}
         assigned_count = len(assigned)
 
-        # 月別カウンタ(その黒服 by の今月の動き)
-        month_reports = [
-            r for r in data["reports"]
-            if r["kurofuku_id"] == k["id"]
-            and month_start.isoformat() <= r["report_date"] < month_end.isoformat()
-        ]
-        report_count = len(month_reports)
-        casts_touched = len({r["cast_id"] for r in month_reports})
-        initiatives_touched = len({r["initiative_id"] for r in month_reports})
+        # 全期間カウンタ(その黒服 by)
+        my_reports = [r for r in data["reports"] if r["kurofuku_id"] == k["id"]]
+        report_count = len(my_reports)
+        casts_touched = len({r["cast_id"] for r in my_reports})
+        initiatives_touched = len({r["initiative_id"] for r in my_reports})
 
         # 接触率: 担当キャスト × A群施策 のユニーク組み合わせのうち、
         # 全期間で1回以上報告のあった組み合わせの割合。同キャスト同施策で複数回でも 1。
@@ -408,7 +401,6 @@ def context_kurofukus(data, today):
     return {
         "title": "黒服別",
         "kurofukus": views,
-        "month_label": f"{month_start.year}年 {month_start.month}月",
         "cast_initiative_count": cast_initiative_count,
     }
 

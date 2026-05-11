@@ -5,9 +5,7 @@
 <div class="mb-4">
   <a href="{{ root }}kurofukus/" class="text-xs text-slate-400 active:text-slate-600">‹ 黒服別</a>
   <h1 class="text-xl font-semibold text-slate-700 mt-1">{{ kurofuku_name }} 担当</h1>
-  <p class="text-xs text-slate-500 mt-1">
-    {{ active_rows | length }}名 / 最終接触が新しい順、未接触は最下位
-  </p>
+  <p class="text-xs text-slate-500 mt-1">{{ active_rows | length }}名 / 最終接触が新しい順</p>
 </div>
 
 {% if active_rows %}
