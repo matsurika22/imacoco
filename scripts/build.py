@@ -396,8 +396,8 @@ def context_kurofukus(data, today):
             "color": color,
         })
 
-    # 担当キャスト人数が多い順
-    views.sort(key=lambda v: v["assigned_count"], reverse=True)
+    # 報告件数が多い順(動いている黒服を上に)
+    views.sort(key=lambda v: v["report_count"], reverse=True)
 
     return {
         "title": "黒服別",

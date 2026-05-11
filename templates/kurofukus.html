@@ -6,29 +6,16 @@
 <div class="space-y-3">
   {% for k in kurofukus %}
   <a href="{{ root }}kurofukus/{{ k.id }}/"
-     class="block bg-white rounded-lg border border-slate-200 p-4 active:bg-slate-50
+     class="block bg-white rounded-lg border border-slate-200 px-4 py-3 active:bg-slate-50
             border-l-4 {% if k.color == 'green' %}border-l-emerald-500{% else %}border-l-slate-800{% endif %}">
-    <div class="flex items-baseline gap-2 mb-3">
+    <div class="flex items-baseline gap-2">
       <h2 class="text-base font-semibold text-slate-700">{{ k.name }}</h2>
       <span class="text-xs text-slate-400">担当 {{ k.assigned_count }}名</span>
-      <span class="ml-auto text-base font-bold
+      <span class="text-xs text-slate-400">報告 {{ k.report_count }}件</span>
+      <span class="ml-auto text-base font-bold tabular-nums
                    {% if k.color == 'green' %}text-emerald-700{% else %}text-slate-800{% endif %}">
         {{ k.contact_rate_pct }}%
       </span>
-    </div>
-    <div class="grid grid-cols-3 gap-2 text-center">
-      <div>
-        <div class="text-xl font-bold text-slate-700">{{ k.report_count }}</div>
-        <div class="text-[11px] text-slate-500 mt-0.5">報告件数</div>
-      </div>
-      <div>
-        <div class="text-xl font-bold text-slate-700">{{ k.casts_touched }}</div>
-        <div class="text-[11px] text-slate-500 mt-0.5">触れたキャスト</div>
-      </div>
-      <div>
-        <div class="text-xl font-bold text-slate-700">{{ k.initiatives_touched }}</div>
-        <div class="text-[11px] text-slate-500 mt-0.5">触れた施策</div>
-      </div>
     </div>
   </a>
   {% endfor %}
