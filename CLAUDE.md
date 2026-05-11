@@ -260,14 +260,21 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 ## 12. 退店リスク管理
 
 - `quit_risks` テーブル(キャスト1人1行、UNIQUE)
-- `certainty`: `confirmed`(本人が辞めると言った)/ `likely`(辞めそう)
-- `expected_quit_date`: 「多分5月末」などの曖昧な日付も**確定値で登録**(構造で「多分」を持たない方針)
-- 確度が変わったら `update-quit-risk` で手動更新
+- `certainty`: `confirmed` 固定運用。**本人が辞めると言った話だけを登録する**。
+  周り発の観測(`likely`)は DB に入れない方針(2026-05-11 確定)。スキーマには
+  `likely` を残してあるが運用上未使用。Claude は「やめるの温度感は?」を聞かない。
+- `expected_quit_date`: 確定日 or **NULL(未定)** のどちらか。
+  「多分5月末」のように曖昧な場合でも未定として登録できる(NOT NULL なし)。
+  Claude は「退店時期、◯月◯日でいいですか? それとも未定で?」のように
+  **未定の選択肢を含めて**確認する。
+- `update-quit-risk` で確度や日付は後から更新可
 - `cast quit` を打つと自動で対応する quit_risks の `is_resolved=1`
 - 解消の意味の使い分け:
   - `is_resolved=1` + `casts.status='quit'` → 実退店で解消
   - `is_resolved=1` + `casts.status='active'` → 辞めない宣言で解消
-- `/quit-risks/` には `is_resolved=0` のみ表示。解消済みはキャスト個別ページで履歴確認
+- `/quit-risks/` には `is_resolved=0` のみ表示。「日付確定」と「日付未定」で
+  リストを分けて出す(templates/quit_risks.html)。カレンダーには確定日のみ載る。
+  解消済みはキャスト個別ページで履歴確認
 
 ---
 
