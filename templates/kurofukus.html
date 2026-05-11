@@ -11,10 +11,10 @@
     <div class="flex items-baseline gap-3 mb-2">
       <h2 class="text-base font-semibold text-slate-700">{{ k.name }}</h2>
       <span class="text-sm text-slate-600">
-        担当 <span class="font-semibold text-slate-800 tabular-nums">{{ k.assigned_count }}</span>人
+        担当 <span class="font-semibold text-slate-800 tabular-nums">{{ k.assigned_count }}</span><span class="text-[11px] text-slate-500">人</span>
       </span>
       <span class="text-sm text-slate-600">
-        報告 <span class="font-semibold text-slate-800 tabular-nums">{{ k.report_count }}</span>件
+        報告 <span class="font-semibold text-slate-800 tabular-nums">{{ k.report_count }}</span><span class="text-[11px] text-slate-500">件</span>
       </span>
       <span class="ml-auto text-base font-bold tabular-nums
                    {% if k.color == 'green' %}text-emerald-700{% else %}text-slate-800{% endif %}">
@@ -24,15 +24,15 @@
     <div class="flex gap-3 text-xs pt-2 border-t border-slate-100">
       <span>
         <span class="text-slate-400">進行中</span>
-        <span class="font-semibold tabular-nums {% if k.in_progress_count > 0 %}text-amber-700{% else %}text-slate-300{% endif %}">{{ k.in_progress_count }}</span>人
+        <span class="font-semibold tabular-nums {% if k.in_progress_count > 0 %}text-amber-700{% else %}text-slate-300{% endif %}">{{ k.in_progress_count }}</span><span class="text-[10px] text-slate-400">人</span>
       </span>
       <span>
         <span class="text-slate-400">未接触</span>
-        <span class="font-semibold tabular-nums {% if k.untouched_count > 0 %}text-rose-600{% else %}text-slate-300{% endif %}">{{ k.untouched_count }}</span>人
+        <span class="font-semibold tabular-nums {% if k.untouched_count > 0 %}text-rose-600{% else %}text-slate-300{% endif %}">{{ k.untouched_count }}</span><span class="text-[10px] text-slate-400">人</span>
       </span>
       <span>
         <span class="text-slate-400">完了</span>
-        <span class="font-semibold tabular-nums {% if k.completed_count > 0 %}text-emerald-700{% else %}text-slate-300{% endif %}">{{ k.completed_count }}</span>人
+        <span class="font-semibold tabular-nums {% if k.completed_count > 0 %}text-emerald-700{% else %}text-slate-300{% endif %}">{{ k.completed_count }}</span><span class="text-[10px] text-slate-400">人</span>
       </span>
     </div>
   </a>
