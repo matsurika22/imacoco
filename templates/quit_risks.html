@@ -28,13 +28,13 @@
         <span class="text-xs text-slate-500">{{ q.kurofuku }}担当</span>
       </div>
       <div class="flex items-baseline gap-2">
-        <span class="text-base font-semibold {{ 'text-red-700' if q.certainty == 'confirmed' else 'text-orange-700' }}">
+        <span class="text-base font-semibold tabular-nums {{ 'text-red-700' if q.certainty == 'confirmed' else 'text-orange-700' }}">
           {{ q.expected_quit_date }}
         </span>
-        <span class="text-xs text-slate-500">
-          {% if q.days_until > 0 %}{{ q.days_until }}日後
-          {% elif q.days_until == 0 %}今日
-          {% else %}{{ -q.days_until }}日経過{% endif %}
+        <span class="text-xs text-slate-500 tabular-nums">
+          {% if q.days_until > 0 %}<span class="font-medium">{{ q.days_until }}</span>日後
+          {% elif q.days_until == 0 %}<span class="font-medium text-rose-600">今日</span>
+          {% else %}<span class="font-medium">{{ -q.days_until }}</span>日経過{% endif %}
         </span>
       </div>
       {% if q.reason %}<div class="text-sm text-slate-500 mt-1">{{ q.reason }}</div>{% endif %}

@@ -46,7 +46,7 @@
       <div class="flex items-center gap-2 mb-1">
         <div class="font-medium text-slate-700 text-sm">{{ s.initiative_name }}</div>
         {{ status_badge(s.status) }}
-        <div class="ml-auto text-[10px] text-slate-400">{{ s.updated_short or "" }}</div>
+        <div class="ml-auto text-xs text-slate-400 tabular-nums">{{ s.updated_short or "" }}</div>
       </div>
       {% if s.comment %}
       <div class="text-sm text-slate-500">{{ s.comment }}</div>
@@ -66,8 +66,8 @@
     <div class="divide-y divide-slate-100">
       {% for r in recent %}
       <div class="px-4 py-3 text-sm">
-        <div class="flex items-center gap-2 mb-1 flex-wrap">
-          <span class="text-xs text-slate-400">{{ r.report_date }}</span>
+        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+          <span class="text-xs text-slate-400 tabular-nums">{{ r.report_date }}</span>
           <a href="{{ root }}initiatives/{{ r.initiative_id }}/" class="text-xs font-medium text-slate-600 active:underline">{{ r.initiative }}</a>
           <span class="text-xs text-slate-400">by {{ r.kurofuku }}</span>
           {{ reaction_badge(r.reaction) }}

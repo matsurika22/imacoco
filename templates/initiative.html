@@ -12,19 +12,19 @@
 
 <section class="mb-5 grid grid-cols-4 gap-2">
   <div class="bg-white rounded-lg border border-slate-200 p-2 text-center">
-    <div class="text-xl font-bold text-amber-700">{{ summary.in_progress }}</div>
+    <div class="text-xl font-bold tabular-nums {% if summary.in_progress > 0 %}text-amber-700{% else %}text-slate-300{% endif %}">{{ summary.in_progress }}</div>
     <div class="text-[10px] text-slate-500">進行中</div>
   </div>
   <div class="bg-white rounded-lg border border-slate-200 p-2 text-center">
-    <div class="text-xl font-bold text-emerald-700">{{ summary.done }}</div>
+    <div class="text-xl font-bold tabular-nums {% if summary.done > 0 %}text-emerald-700{% else %}text-slate-300{% endif %}">{{ summary.done }}</div>
     <div class="text-[10px] text-slate-500">完了</div>
   </div>
   <div class="bg-white rounded-lg border border-slate-200 p-2 text-center">
-    <div class="text-xl font-bold text-rose-600">{{ summary.declined }}</div>
+    <div class="text-xl font-bold tabular-nums {% if summary.declined > 0 %}text-rose-600{% else %}text-slate-300{% endif %}">{{ summary.declined }}</div>
     <div class="text-[10px] text-slate-500">無理</div>
   </div>
   <div class="bg-white rounded-lg border border-slate-200 p-2 text-center">
-    <div class="text-xl font-bold text-slate-400">{{ summary.not_started }}</div>
+    <div class="text-xl font-bold tabular-nums {% if summary.not_started > 0 %}text-slate-500{% else %}text-slate-300{% endif %}">{{ summary.not_started }}</div>
     <div class="text-[10px] text-slate-500">未着手</div>
   </div>
 </section>
@@ -74,8 +74,8 @@
     <div class="divide-y divide-slate-100">
       {% for r in recent %}
       <div class="px-4 py-3 text-sm">
-        <div class="flex items-center gap-2 mb-1 flex-wrap">
-          <span class="text-xs text-slate-400">{{ r.report_date }}</span>
+        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+          <span class="text-xs text-slate-400 tabular-nums">{{ r.report_date }}</span>
           <a href="{{ root }}casts/{{ r.cast_id }}/" class="font-medium text-slate-700 active:underline">{{ r.cast }}</a>
           <span class="text-xs text-slate-400">by {{ r.kurofuku }}</span>
           {{ reaction_badge(r.reaction) }}

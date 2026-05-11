@@ -21,7 +21,7 @@
     <div class="font-medium text-slate-700 text-base">{{ c.name }}</div>
     {% if c.quit_risk %}{{ quit_risk_badge(c.quit_risk) }}{% endif %}
     <div class="ml-auto flex items-center gap-2">
-      <span class="text-xs {% if c.last_short %}text-slate-400{% else %}text-rose-400{% endif %}">
+      <span class="text-xs tabular-nums {% if c.last_short %}text-slate-400{% else %}text-rose-500 font-medium{% endif %}">
         {% if c.last_short %}{{ c.last_short }}{% else %}未接触{% endif %}
       </span>
       <div class="text-slate-300">›</div>

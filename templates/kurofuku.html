@@ -17,7 +17,7 @@
       <span class="font-medium text-slate-700 text-base">{{ r.cast }}</span>
       <span class="text-[11px] text-slate-400">{{ r.shift_label }}</span>
       {% if r.quit_risk %}{{ quit_risk_badge(r.quit_risk) }}{% endif %}
-      <span class="ml-auto text-xs {% if r.last_short %}text-slate-500{% else %}text-rose-500{% endif %}">
+      <span class="ml-auto text-xs tabular-nums {% if r.last_short %}text-slate-500{% else %}text-rose-500 font-medium{% endif %}">
         {% if r.last_short %}最終 {{ r.last_short }}{% else %}未接触{% endif %}
       </span>
     </div>

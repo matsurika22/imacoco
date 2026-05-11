@@ -89,21 +89,33 @@
   {%- set is_casts = current_page in ('casts', 'cast') -%}
   {%- set is_quit = current_page == 'quit_risks' -%}
   {%- set is_kuro = current_page == 'kurofukus' -%}
-  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40"
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 shadow-[0_-2px_8px_rgba(0,0,0,0.04)]"
        style="padding-bottom: env(safe-area-inset-bottom);">
     <div class="max-w-md mx-auto grid grid-cols-4">
       <a href="{{ root }}"
-         class="flex items-center justify-center py-4 text-sm
-                {{ 'text-slate-900 font-semibold' if is_home else 'text-slate-400 active:text-slate-700' }}">ホーム</a>
+         class="relative flex items-center justify-center py-4 text-sm
+                {{ 'text-slate-900 font-semibold' if is_home else 'text-slate-400 active:text-slate-700' }}">
+        {% if is_home %}<span class="absolute top-0 left-3 right-3 h-0.5 bg-slate-800 rounded-full"></span>{% endif %}
+        ホーム
+      </a>
       <a href="{{ root }}casts/"
-         class="flex items-center justify-center py-4 text-sm
-                {{ 'text-slate-900 font-semibold' if is_casts else 'text-slate-400 active:text-slate-700' }}">キャスト</a>
+         class="relative flex items-center justify-center py-4 text-sm
+                {{ 'text-slate-900 font-semibold' if is_casts else 'text-slate-400 active:text-slate-700' }}">
+        {% if is_casts %}<span class="absolute top-0 left-3 right-3 h-0.5 bg-slate-800 rounded-full"></span>{% endif %}
+        キャスト
+      </a>
       <a href="{{ root }}quit-risks/"
-         class="flex items-center justify-center py-4 text-sm
-                {{ 'text-slate-900 font-semibold' if is_quit else 'text-slate-400 active:text-slate-700' }}">退店</a>
+         class="relative flex items-center justify-center py-4 text-sm
+                {{ 'text-slate-900 font-semibold' if is_quit else 'text-slate-400 active:text-slate-700' }}">
+        {% if is_quit %}<span class="absolute top-0 left-3 right-3 h-0.5 bg-slate-800 rounded-full"></span>{% endif %}
+        退店
+      </a>
       <a href="{{ root }}kurofukus/"
-         class="flex items-center justify-center py-4 text-sm
-                {{ 'text-slate-900 font-semibold' if is_kuro else 'text-slate-400 active:text-slate-700' }}">黒服</a>
+         class="relative flex items-center justify-center py-4 text-sm
+                {{ 'text-slate-900 font-semibold' if is_kuro else 'text-slate-400 active:text-slate-700' }}">
+        {% if is_kuro %}<span class="absolute top-0 left-3 right-3 h-0.5 bg-slate-800 rounded-full"></span>{% endif %}
+        黒服
+      </a>
     </div>
   </nav>
   {% endif %}
