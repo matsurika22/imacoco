@@ -359,17 +359,20 @@ def context_quit_risks(data, today):
 
 def context_kurofukus(data, today):
     month_start, month_end = month_bounds(today)
-    # 「今月」= 暦月。 month_start <= report_date < month_end
+    # 「今月」= 暦月。月別カウンタ(報告件数 / 触れたキャスト / 触れた施策)に使う。
     active_casts = [c for c in data["casts"] if c["status"] == "active"]
-    # A群施策(category='cast')の数。退店リスクは含まない(報告が必ず発生する性質ではないため)
-    cast_initiative_count = len([i for i in data["initiatives"] if i["category"] == "cast"])
+    # A群施策(category='cast')。退店リスクは「必ず発生する性質ではない」ため分母から除外。
+    cast_initiative_ids = {i["id"] for i in data["initiatives"] if i["category"] == "cast"}
+    cast_initiative_count = len(cast_initiative_ids)
 
     views = []
     for k in data["kurofukus"]:
         # 担当アクティブキャスト数
         assigned = [c for c in active_casts if c["kurofuku"] == k["name"]]
+        assigned_ids = {c["id"] for c in assigned}
         assigned_count = len(assigned)
-        # 今月の reports(その黒服 by)
+
+        # 月別カウンタ(その黒服 by の今月の動き)
         month_reports = [
             r for r in data["reports"]
             if r["kurofuku_id"] == k["id"]
@@ -378,16 +381,23 @@ def context_kurofukus(data, today):
         report_count = len(month_reports)
         casts_touched = len({r["cast_id"] for r in month_reports})
         initiatives_touched = len({r["initiative_id"] for r in month_reports})
-        # 接触率: 今月の報告件数 / (担当人数 × A群施策数)
-        # ※ 退店リスクは「必ず発生するわけではない」性質の施策なので分母から除外
+
+        # 接触率: 担当キャスト × A群施策 のユニーク組み合わせのうち、
+        # 全期間で1回以上報告のあった組み合わせの割合。同キャスト同施策で複数回でも 1。
+        touched_pairs = {
+            (r["cast_id"], r["initiative_id"])
+            for r in data["reports"]
+            if r["cast_id"] in assigned_ids and r["initiative_id"] in cast_initiative_ids
+        }
         denom = assigned_count * cast_initiative_count
-        rate = report_count / denom if denom > 0 else 0.0
+        rate = len(touched_pairs) / denom if denom > 0 else 0.0
         if rate >= 0.7:
             color = "green"
         elif rate >= 0.3:
             color = "yellow"
         else:
             color = "red"
+
         views.append({
             "id": k["id"],
             "name": k["name"],

@@ -3,8 +3,8 @@
 {% block content %}
 <h1 class="text-xl font-semibold text-slate-700 mb-2">黒服別</h1>
 <p class="text-xs text-slate-500 mb-5">
-  {{ month_label }}<br>
-  接触率 = 今月の報告件数 ÷ (担当人数 × A群施策{{ cast_initiative_count }}件)。70%以上=緑 / 30〜70%=黄 / 30%未満=赤。
+  接触率(全期間) = 担当キャスト × A群施策{{ cast_initiative_count }}件のうち1回以上アクションした組合せの割合。
+  下の数字は{{ month_label }}の動き。70%以上=緑 / 30〜70%=黄 / 30%未満=赤。
 </p>
 
 <div class="space-y-3">
