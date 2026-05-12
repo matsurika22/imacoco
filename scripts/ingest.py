@@ -267,13 +267,13 @@ VALID_STATUSES = ("not_started", "declined", "in_progress", "done")
 # 表示ラベル(ヘルプメッセージ等で使う)
 STATUS_LABEL = {
     "not_started": "未着手",
-    "declined":    "無理だった",
+    "declined":    "無理そう",
     "in_progress": "進行中",
     "done":        "完了",
 }
 
 
-# 終端状態(これ以上アクション不要):done(完了)と declined(無理だった)。
+# 終端状態(これ以上アクション不要):done(完了)と declined(無理そう)。
 # どちらも巻き戻すには --force を要求して誤操作を防ぐ。
 TERMINAL_STATUSES = ("done", "declined")
 

@@ -1,11 +1,11 @@
-{# 各施策のステータスバッジ。declined(無理だった)は完了の駄目パターン扱い。 #}
+{# 各施策のステータスバッジ。declined(無理そう)は完了の駄目パターン扱い。 #}
 {% macro status_badge(status) -%}
   {% if status == 'done' -%}
     <span class="inline-block px-2 py-0.5 text-xs rounded bg-emerald-100 text-emerald-800">完了</span>
   {%- elif status == 'in_progress' -%}
     <span class="inline-block px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-800">進行中</span>
   {%- elif status == 'declined' -%}
-    <span class="inline-block px-2 py-0.5 text-xs rounded bg-rose-50 text-rose-700 border border-rose-200">無理だった</span>
+    <span class="inline-block px-2 py-0.5 text-xs rounded bg-rose-50 text-rose-700 border border-rose-200">無理そう</span>
   {%- else -%}
     <span class="inline-block px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-500">未着手</span>
   {%- endif %}
