@@ -7,9 +7,9 @@
   {% for k in kurofukus %}
   <a href="{{ root }}kurofukus/{{ k.id }}/"
      class="block bg-white rounded-lg border border-slate-200 px-4 py-3 active:bg-slate-50
-            border-l-4 {% if k.color == 'green' %}border-l-emerald-500{% else %}border-l-slate-800{% endif %}">
+            border-l-4 {{ k.kurofuku_color.border_l }}">
     <div class="flex items-baseline gap-3 mb-2">
-      <h2 class="text-base font-semibold text-slate-700">{{ k.name }}</h2>
+      <h2 class="text-base font-semibold {{ k.kurofuku_color.text }}">{{ k.name }}</h2>
       <span class="text-sm text-slate-600">
         担当 <span class="font-semibold text-slate-800 tabular-nums">{{ k.assigned_count }}</span><span class="text-[11px] text-slate-500">人</span>
       </span>

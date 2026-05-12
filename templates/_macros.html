@@ -30,3 +30,12 @@
     <span class="inline-block px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700 border border-orange-200">退店リスク</span>
   {%- endif %}
 {%- endmacro %}
+
+{# 担当黒服タグ。各黒服に固有色を割り当てて全ページで統一表示。
+   色は build.py の KUROFUKU_COLORS で定義、context 経由で渡す。 #}
+{% macro kurofuku_tag(name, color) -%}
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded {{ color.bg }} {{ color.text }} border {{ color.border }}">
+    <span class="inline-block w-1.5 h-1.5 rounded-full {{ color.dot }}"></span>
+    {{ name }}
+  </span>
+{%- endmacro %}

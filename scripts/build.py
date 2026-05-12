@@ -28,6 +28,24 @@ DB_PATH = ROOT / "data" / "reports.db"
 TEMPLATES_DIR = ROOT / "templates"
 DIST_DIR = ROOT / "dist"
 
+# 黒服ごとのカラーパレット。落ち着いたトーンで、ナイトワーク色(赤・ピンク)は避ける。
+# テンプレでタグ・ヘッダー色などに使う。Tailwind CDN は HTML 内クラス文字列を
+# スキャンするので、ここで使う class 名はテンプレに必ず文字列として出てくる必要がある。
+KUROFUKU_COLORS = {
+    "五上":   {"bg": "bg-sky-50",     "text": "text-sky-700",     "border": "border-sky-200",     "dot": "bg-sky-500",     "border_l": "border-l-sky-500"},
+    "ひろし": {"bg": "bg-violet-50",  "text": "text-violet-700",  "border": "border-violet-200",  "dot": "bg-violet-500",  "border_l": "border-l-violet-500"},
+    "川田":   {"bg": "bg-teal-50",    "text": "text-teal-700",    "border": "border-teal-200",    "dot": "bg-teal-500",    "border_l": "border-l-teal-500"},
+    "鴇田":   {"bg": "bg-orange-50",  "text": "text-orange-700",  "border": "border-orange-200",  "dot": "bg-orange-500",  "border_l": "border-l-orange-500"},
+    "向原":   {"bg": "bg-lime-50",    "text": "text-lime-700",    "border": "border-lime-200",    "dot": "bg-lime-500",    "border_l": "border-l-lime-500"},
+}
+DEFAULT_KUROFUKU_COLOR = {
+    "bg": "bg-slate-100", "text": "text-slate-700", "border": "border-slate-200", "dot": "bg-slate-400", "border_l": "border-l-slate-400",
+}
+
+
+def kurofuku_color(name: str) -> dict:
+    return KUROFUKU_COLORS.get(name, DEFAULT_KUROFUKU_COLOR)
+
 
 # ---------------------------------------------------------------------------
 # 設定読み込み
@@ -66,6 +84,9 @@ def fetch_all(conn: sqlite3.Connection):
     kurofukus = [dict(r) for r in conn.execute(
         "SELECT id, name FROM kurofukus ORDER BY id"
     )]
+    # 黒服ごとに color パレットを attach
+    for k in kurofukus:
+        k["color"] = kurofuku_color(k["name"])
     initiatives = [dict(r) for r in conn.execute(
         "SELECT id, name, category, description FROM initiatives ORDER BY id"
     )]
@@ -73,6 +94,9 @@ def fetch_all(conn: sqlite3.Connection):
         "SELECT c.id, c.name, c.kurofuku_id, k.name AS kurofuku, c.shift, c.status, c.quit_date "
         "FROM casts c JOIN kurofukus k ON c.kurofuku_id = k.id ORDER BY c.id"
     )]
+    # 各キャストにも担当黒服の color を持たせる(テンプレで使いやすく)
+    for c in casts:
+        c["kurofuku_color"] = kurofuku_color(c["kurofuku"])
     statuses = [dict(r) for r in conn.execute(
         "SELECT cast_id, initiative_id, status, comment, updated_at "
         "FROM cast_initiative_status"
@@ -95,6 +119,8 @@ def fetch_all(conn: sqlite3.Connection):
         "JOIN kurofukus k ON c.kurofuku_id = k.id "
         "WHERE q.is_resolved = 0"
     )]
+    for q in quit_risks:
+        q["kurofuku_color"] = kurofuku_color(q["kurofuku"])
     return {
         "kurofukus": kurofukus,
         "initiatives": initiatives,
@@ -236,6 +262,7 @@ def context_initiative(data, ini, today):
         rows.sort(key=lambda r: (order.get(r["status"], 4), r["cast"]))
         groups.append({
             "kurofuku": kuro,
+            "kurofuku_color": kurofuku_color(kuro),
             "shift_label": "夜" if shift == "night" else "昼",
             "rows": rows,
             "in_progress": sum(1 for r in rows if r["status"] == "in_progress"),
@@ -421,6 +448,7 @@ def context_kurofukus(data, today):
         views.append({
             "id": k["id"],
             "name": k["name"],
+            "kurofuku_color": k["color"],
             "assigned_count": assigned_count,
             "report_count": report_count,
             "casts_touched": casts_touched,
@@ -483,6 +511,7 @@ def context_kurofuku(data, kurofuku, today):
     return {
         "title": f"{kurofuku['name']} 担当",
         "kurofuku_name": kurofuku["name"],
+        "kurofuku_color": kurofuku["color"],
         "active_rows": rows,
         "quit_casts": assigned_quit,
     }

@@ -1,14 +1,13 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, reaction_badge, quit_risk_badge %}
+{% from "_macros.html" import status_badge, reaction_badge, quit_risk_badge, kurofuku_tag %}
 
 {% block content %}
 <div class="mb-5">
   <a href="{{ root }}casts/" class="inline-block py-2 text-sm text-slate-500 active:text-slate-800">← キャスト一覧</a>
-  <div class="flex items-baseline gap-2 mt-1 flex-wrap">
-    <h1 class="text-xl font-semibold text-slate-700">{{ cast.name }}</h1>
-    <div class="text-sm text-slate-500">
-      {{ cast.kurofuku }} / {{ "夜" if cast.shift == "night" else "昼" }}
-    </div>
+  <h1 class="text-xl font-semibold text-slate-700 mt-1">{{ cast.name }}</h1>
+  <div class="flex items-center gap-2 mt-2 flex-wrap">
+    {{ kurofuku_tag(cast.kurofuku, cast.kurofuku_color) }}
+    <span class="text-xs text-slate-500">{{ "夜" if cast.shift == "night" else "昼" }}</span>
     {% if cast.status == "quit" %}
     <span class="inline-block px-2 py-0.5 text-xs rounded bg-slate-200 text-slate-600">退店済み({{ cast.quit_date }})</span>
     {% endif %}
