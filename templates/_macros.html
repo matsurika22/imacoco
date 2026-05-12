@@ -22,15 +22,16 @@
   {%- endif %}
 {%- endmacro %}
 
-{# 退店リスク バッジ。黒服タグ(薄背景+ドット)と紛れないよう塗りつぶし+白文字+太字で警告感を出す。 #}
+{# 退店リスク バッジ。黒服タグ(薄背景+ドット)と紛れないよう塗りつぶしで形状を変えるが、
+   目立たせすぎないようワントーン落ち着いた色+細字に。 #}
 {% macro quit_risk_badge(certainty) -%}
   {% if certainty == 'confirmed' -%}
-    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-red-600 text-white font-semibold">
-      <span aria-hidden="true">⚠</span>退店確定
+    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded bg-red-500/90 text-white">
+      <span aria-hidden="true" class="text-[10px]">⚠</span>退店確定
     </span>
   {%- elif certainty == 'likely' -%}
-    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-orange-500 text-white font-semibold">
-      <span aria-hidden="true">⚠</span>退店リスク
+    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded bg-orange-400/90 text-white">
+      <span aria-hidden="true" class="text-[10px]">⚠</span>退店リスク
     </span>
   {%- endif %}
 {%- endmacro %}
