@@ -278,6 +278,36 @@ def context_initiative(data, ini, today):
 
     reports = [r for r in data["reports"] if r["initiative_id"] == ini["id"]]
 
+    # バースデー(施策3)のみ: 退店リスクページと同じ「現状/リスト/カレンダー」タブ用の
+    # データを追加。リストは 確定(done) / 未確定(in_progress+日付) / 日付未定 の3分割。
+    is_birthday = ini["name"] == "バースデーイベント開催のお願い"
+    bday_confirmed, bday_tentative, bday_undated, bday_calendar = [], [], [], []
+    if is_birthday:
+        for c in active_casts:
+            s = status_for(data["statuses"], c["id"], ini["id"])
+            if not s or s["status"] not in ("in_progress", "done"):
+                continue
+            ev = s.get("event_date")
+            base = {
+                "cast": c["name"], "cast_id": c["id"],
+                "kurofuku": c["kurofuku"], "kurofuku_color": c["kurofuku_color"],
+                "comment": s["comment"] or "",
+            }
+            if ev:
+                row = {**base, "date": ev, "days_until": _days_until(ev, today)}
+                if s["status"] == "done":
+                    bday_confirmed.append(row)
+                else:
+                    bday_tentative.append(row)
+                bday_calendar.append({
+                    "date": ev, "cast": c["name"], "cast_id": c["id"],
+                    "kind": "birthday", "confirmed": s["status"] == "done",
+                })
+            else:
+                bday_undated.append({**base, "confirmed": s["status"] == "done"})
+        bday_confirmed.sort(key=lambda r: r["date"])
+        bday_tentative.sort(key=lambda r: r["date"])
+
     return {
         "title": ini["name"],
         "initiative": ini,
@@ -289,6 +319,11 @@ def context_initiative(data, ini, today):
             "not_started": summary_not_started,
         },
         "reports": reports,
+        "is_birthday": is_birthday,
+        "bday_confirmed": bday_confirmed,
+        "bday_tentative": bday_tentative,
+        "bday_undated": bday_undated,
+        "bday_calendar": bday_calendar,
     }
 
 
@@ -382,48 +417,92 @@ def context_quit_risks(data, today):
     }
 
 
-def context_calendar(data, today):
-    """/予定/ 用。退店(確定日)とバースデー(開催予定日)を1つのカレンダーに載せる。
-    バースデー日付は cast_initiative_status.event_date(施策3)を単一情報源にする。
-    退店リスク機能側(context_quit_risks)はそのまま、ここは独立に集約するだけ。"""
-    active_casts = {c["id"]: c["name"] for c in data["casts"] if c["status"] == "active"}
+def _days_until(date_str, today):
+    """'YYYY-MM-DD' と today(date)から残り日数(整数)。過去は負。"""
+    d = datetime.strptime(date_str[:10], "%Y-%m-%d").date()
+    return (d - today).days
 
-    birthday_ini = next(
+
+def _birthday_initiative_id(data):
+    ini = next(
         (i for i in data["initiatives"] if i["name"] == "バースデーイベント開催のお願い"),
         None,
     )
-    birthday_id = birthday_ini["id"] if birthday_ini else None
+    return ini["id"] if ini else None
 
-    events = []
 
-    # 退店(確定日のみ。未定は /退店/ 側に出るのでカレンダーには載せない)
+def context_calendar(data, today):
+    """/予定/ 用。退店(確定日)とバースデー(開催予定日)を、退店リスクページと同じ
+    「リスト / カレンダー」2タブで見せる。カレンダー JS 用 calendar_events と、
+    リスト用 list_dated(日付順)/ list_undated(日付未定)を渡す。
+    退店リスク機能側(context_quit_risks)はそのまま、ここは独立に集約するだけ。"""
+    active_casts = {
+        c["id"]: c for c in data["casts"] if c["status"] == "active"
+    }
+    birthday_id = _birthday_initiative_id(data)
+
+    events = []        # カレンダー JS 用
+    list_dated = []    # リストタブ: 日付あり(日付順)
+    list_undated = []  # リストタブ: 日付未定
+
+    # 退店
     for q in data["quit_risks"]:
         if q["expected_quit_date"]:
             events.append({
+                "date": q["expected_quit_date"], "cast": q["cast"],
+                "cast_id": q["cast_id"], "kind": "quit", "certainty": q["certainty"],
+            })
+            list_dated.append({
                 "date": q["expected_quit_date"],
-                "cast": q["cast"],
-                "cast_id": q["cast_id"],
-                "kind": "quit",
-                "certainty": q["certainty"],   # confirmed / likely
+                "days_until": _days_until(q["expected_quit_date"], today),
+                "cast": q["cast"], "cast_id": q["cast_id"],
+                "kurofuku": q["kurofuku"], "kurofuku_color": q["kurofuku_color"],
+                "kind": "quit", "certainty": q["certainty"], "detail": q["reason"] or "",
+            })
+        else:
+            list_undated.append({
+                "cast": q["cast"], "cast_id": q["cast_id"],
+                "kurofuku": q["kurofuku"], "kurofuku_color": q["kurofuku_color"],
+                "kind": "quit", "certainty": q["certainty"], "detail": q["reason"] or "",
             })
 
-    # バースデー(event_date 付き・アクティブキャストのみ)
+    # バースデー(アクティブキャストのみ)
     if birthday_id is not None:
         for s in data["statuses"]:
-            if (s["initiative_id"] == birthday_id and s.get("event_date")
-                    and s["cast_id"] in active_casts):
+            if s["initiative_id"] != birthday_id or s["cast_id"] not in active_casts:
+                continue
+            if s["status"] not in ("in_progress", "done"):
+                continue
+            c = active_casts[s["cast_id"]]
+            confirmed = s["status"] == "done"
+            if s.get("event_date"):
                 events.append({
-                    "date": s["event_date"],
-                    "cast": active_casts[s["cast_id"]],
-                    "cast_id": s["cast_id"],
-                    "kind": "birthday",
-                    # done=開催確定、それ以外(in_progress 等)=未確定
-                    "confirmed": s["status"] == "done",
+                    "date": s["event_date"], "cast": c["name"],
+                    "cast_id": c["id"], "kind": "birthday", "confirmed": confirmed,
                 })
+                list_dated.append({
+                    "date": s["event_date"],
+                    "days_until": _days_until(s["event_date"], today),
+                    "cast": c["name"], "cast_id": c["id"],
+                    "kurofuku": c["kurofuku"], "kurofuku_color": c["kurofuku_color"],
+                    "kind": "birthday", "confirmed": confirmed,
+                    "detail": s["comment"] or "",
+                })
+            else:
+                list_undated.append({
+                    "cast": c["name"], "cast_id": c["id"],
+                    "kurofuku": c["kurofuku"], "kurofuku_color": c["kurofuku_color"],
+                    "kind": "birthday", "confirmed": confirmed,
+                    "detail": s["comment"] or "",
+                })
+
+    list_dated.sort(key=lambda r: r["date"])
 
     return {
         "title": "予定",
         "calendar_events": events,
+        "list_dated": list_dated,
+        "list_undated": list_undated,
     }
 
 

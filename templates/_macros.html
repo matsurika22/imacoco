@@ -36,6 +36,20 @@
   {%- endif %}
 {%- endmacro %}
 
+{# バースデー開催バッジ。退店バッジと形を揃えつつ、警告色ではなく落ち着いた emerald。
+   confirmed(=status done, 開催月決定)は塗り、未確定(in_progress)は薄め。 #}
+{% macro birthday_badge(confirmed) -%}
+  {% if confirmed -%}
+    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded bg-emerald-100 text-emerald-800">
+      <span aria-hidden="true" class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>バースデー確定
+    </span>
+  {%- else -%}
+    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+      <span aria-hidden="true" class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300"></span>バースデー未確定
+    </span>
+  {%- endif %}
+{%- endmacro %}
+
 {# 担当黒服タグ。各黒服に固有色を割り当てて全ページで統一表示。
    色は build.py の KUROFUKU_COLORS で定義、context 経由で渡す。 #}
 {% macro kurofuku_tag(name, color) -%}

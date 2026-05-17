@@ -288,15 +288,31 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 - 今月〜+12ヶ月、過去送り不可
 - vanilla JS で月ごとに描画、各日に max 2件まで表示 + 「+N」省略表示
 
-**/calendar/(下タブ「予定」、2026-05-18 新設)**:
+**/calendar/(下タブ「予定」、2026-05-18 新設。2026-05-18 リスト/カレンダー2タブ化)**:
 - `templates/calendar.html`。build.py `context_calendar` が単一情報源
-- 退店(`quit_risks` の確定日)+ バースデー(`cast_initiative_status.event_date`、
-  アクティブキャストのみ)を**1つのカレンダーに集約**。各セルからキャスト個別へリンク
-- 退店確定=`bg-red-500`、退店リスク=`bg-orange-500`(運用上未使用)、
+- **退店リスクページと同じ「リスト / カレンダー」2タブ**(デフォルト=リスト)
+- 退店(`quit_risks`)+ バースデー(`cast_initiative_status.event_date`、アクティブのみ)を集約
+  - リスト: `list_dated`(日付近い順)/ `list_undated`(日付未定)。各行は日付を
+    リンクの**外・上部に大きく**出し、その下のリンクにバッジ+名前+黒服タグ+メモ
+  - カレンダー: `calendar_events` を月グリッド描画(各セルからキャスト個別へリンク)
+- 色: 退店確定=`bg-red-500`、退店リスク=`bg-orange-500`(運用上未使用)、
   バースデー確定(status=done)=`bg-emerald-500`、バースデー未確定(done以外)=`bg-emerald-300`
-- 退店の日付未定はここには出さない(従来どおり /quit-risks/ 側)
+- バッジ文言は `_macros.html`: 退店=`quit_risk_badge`、バースデー=`birthday_badge`
+  (「バースデー確定」/「バースデー未確定」。"開催確定" 等の曖昧表現にしない)
+- 退店の日付未定もリストの「日付未定」に出す(/quit-risks/ 側とは別集計)
 - /quit-risks/ 内カレンダーとはコード独立(quit_risks.html / context_quit_risks は不変)
-- Tailwind CDN 対策で dot 色クラスは calendar.html の凡例にリテラルで必ず出す(§10 色方針と同様)
+- Tailwind CDN 対策で dot/バッジ色クラスは凡例・マクロにリテラルで必ず出す(§10 色方針と同様)
+
+**/initiatives/3/(バースデー施策ページのみ、2026-05-18 タブ化)**:
+- `initiative.html` は全 A 群共通。バースデー(`is_birthday`)のときだけ
+  **「進捗 / リスト / カレンダー」3タブ**(デフォルト=進捗=従来の統計/黒服別/ログ)。
+  施策1・2 はタブ無しの従来表示(`is_birthday=False` で素通り)
+- リストは **確定(done)/ 未確定(in_progress+日付)/ 日付未定(in_progress+日付なし)** の3分割。
+  `context_initiative` が `bday_confirmed/bday_tentative/bday_undated/bday_calendar` を渡す
+- 行レイアウト・バッジ・色は /calendar/ と統一(日付はリンク外・上部)
+- **バースデーのメモ(reports.content / cast_initiative_status.comment)に日付を書かない**。
+  日付は `event_date` 一本化、リスト/カレンダー/バッジが表示を担う。メモは状態だけ
+  (現行は全件「開催予定」。2026-05-18 ユーザー指示で重複解消)
 
 ---
 
@@ -461,3 +477,9 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 - **下タブ「退店」→「予定」差し替え + /calendar/ 新設**(2026/05/18)。退店+バースデーを
   1カレンダーに集約。/quit-risks/ はナビから外したがホームの退店リスクカードから到達。
   §10 / §3 参照
+- **/予定・/initiatives/3/ を退店リスク型タブに**(2026/05/18)。/予定=リスト/カレンダー、
+  /initiatives/3/=進捗/リスト/カレンダー(進捗デフォルト、施策1・2は不変)。リストは
+  日付をリンク外・上部に大きく出す形に。§10 参照
+- **バースデーのメモは日付を書かない運用に**(2026/05/18)。日付カラム(event_date)が
+  無かった頃の名残でメモに年月が重複していたのを解消。メモ(content/comment)は状態のみ
+  (全件「開催予定」)、日付は event_date 一本化。バッジ文言は「バースデー確定/未確定」

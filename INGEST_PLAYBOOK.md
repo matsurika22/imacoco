@@ -125,22 +125,25 @@ TikTok動画買取は前向きに検討
 
 | 報告本文の典型表現 | reaction | content/comment 例 |
 |---|---|---|
-| 「誕生月はまだ先(◯月)だが開催したいと前向き、規模感(クール/イベント日/オリシャン)は検討中」 | positive | 「誕生月◯月。それまでに顧客を作り開催したいと前向き。規模感は検討中」 |
-| 「来年◯月にやれるようにしたい」(希望止まり・未確定) | positive | 「来年YYYY-MM 開催希望(未確定)」 + `--event-date YYYY-MM-01` |
+| 「誕生月はまだ先(◯月)だが開催したいと前向き、規模感は検討中」 | positive | 「開催予定」 + `--event-date YYYY-MM-01`(status=in_progress) |
+| 「来年◯月にやれるようにしたい」(希望止まり・未確定) | positive | 「開催予定」 + `--event-date YYYY-MM-01`(status=in_progress) |
 
 ##### バースデー (施策3) — done (完了 = 開催月が決まった)
 
 | 報告本文の典型表現 | reaction | content/comment 例 |
 |---|---|---|
-| 「◯月にやる」(開催月が決まった。具体日は未記載でも可) | positive | 「YYYY-MM 開催予定(月決定)」 + `--event-date YYYY-MM-01` |
-| 「◯月or◯月にやる」(幅 → ユーザーにどちらか確認、初出は確認した) | positive | 確認した月で「YYYY-MM 開催予定」 + `--event-date YYYY-MM-01` |
+| 「◯月にやる」(開催月が決まった。具体日は未記載でも可) | positive | 「開催予定」 + `--event-date YYYY-MM-01` |
+| 「◯月or◯月にやる」(幅 → ユーザーにどちらか確認、初出は確認した) | positive | 「開催予定」 + 確認した月で `--event-date YYYY-MM-01` |
 
 **重要**:
 - 「やらない」と言われても declined ではなく in_progress 据え置き(declined 不使用、CLAUDE.md §6 / §7-3)。
 - **done 昇格は「開催月が決まったら」**(2026-05-18 ユーザー決定で「日程確定のみ」から緩和)。
   「8月にやる」レベルで done。希望止まり・未確定は in_progress 据え置き。
+- **メモ(content / comment)に日付・年月を書かない**(2026-05-18 ユーザー指示)。
+  日付は `--event-date` 一本化、リスト/カレンダー/バッジが表示を担う。メモは状態だけ
+  (現行運用は全件「開催予定」。確定/未確定は status とバッジで区別)。
 - done でも in_progress でも、月が読めたら **`--event-date YYYY-MM-DD` を必ず付ける**
-  (`/calendar/` 予定タブに載る)。**日が未記載なら月初(YYYY-MM-01)**。年は当年/相対表現を補完。
+  (`/calendar/`・`/initiatives/3/` に載る)。**日が未記載なら月初(YYYY-MM-01)**。年は当年/相対表現を補完。
 - 同 status のまま日付だけ後から付ける/直すときは `set-status --status <現状> --event-date ...`
   (`updated_at` を触らずに済む。CLAUDE.md §8)。サンプル: 2026-05-17 五上8名 / くう。
 
