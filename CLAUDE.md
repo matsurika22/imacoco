@@ -63,13 +63,15 @@ shisaku-tracker/
 │   ├── _macros.html         ← status/reaction/quit_risk バッジ
 │   ├── index.html
 │   ├── initiative.html
-│   ├── casts.html           ← sticky 検索ボックス + JS フィルタ
+│   ├── casts.html           ← sticky 検索ボックス + 全1リスト(最終接触順) + 担当黒服タグ
 │   ├── cast.html
 │   ├── quit_risks.html      ← リスト/カレンダータブ切替
-│   ├── kurofukus.html
+│   ├── kurofukus.html       ← 黒服別カード(アクション終了率/進行中/未接触/完了)
+│   ├── kurofuku.html        ← 黒服個別ページ /kurofukus/{id}/(担当キャスト一覧)
 │   └── restaurants.html     ← ナビ非表示、URL 直打ちのみ
 ├── dist/                    ← ビルド成果物。gitignore
-└── .github/workflows/       ← Step 4 でここに deploy.yml(未着手)
+└── .github/workflows/
+    └── deploy.yml           ← GitHub Actions → Pages 自動デプロイ(稼働中)
 ```
 
 ---
@@ -78,7 +80,7 @@ shisaku-tracker/
 
 **前提**:
 - 作業時は必ず `cd /Users/mk/dev/shisaku-tracker` してから。venv はプロジェクト内。
-- **Python 3.12** を想定(現状 `python3` = 3.12.5)。Step 4 の GitHub Actions も 3.12 でセットアップする
+- **Python 3.12** を想定(現状 `python3` = 3.12.5)。GitHub Actions も 3.12 でセットアップ済み
 - 外部依存は **jinja2 のみ**(`requirements.txt`)。残りは Python stdlib
 
 ```bash
@@ -86,9 +88,11 @@ shisaku-tracker/
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
-# DB を新規作成(既存があれば --force 必要)
-python3 scripts/init_db.py
-python3 scripts/init_db.py --force
+# DB 初期化。⚠️ 本番運用中なので通常打たない(§15)。
+#   init_db.py     → 既存があればエラーで止まる(安全)
+#   init_db.py --force → 既存DBを全削除して再シード = 本番データ全消失。絶対打つな
+python3 scripts/init_db.py            # ※ 既に reports.db があるのでこれ自体エラーになる
+# python3 scripts/init_db.py --force  # ← 封印。本番データを消すので使用禁止
 
 # CLI(参照・登録・更新)
 python3 scripts/ingest.py <subcommand> [options]
@@ -223,23 +227,47 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 - 本文は `text-sm` / `text-base` 主体。`text-xs` は補助のみ
 
 **密度を抑える工夫**:
-- /initiatives/{id}/ の黒服別グループは `<details>` で**デフォルト折り畳み**。サマリー行に「進N 完N 無N 未N」表示。
+- /initiatives/{id}/ の黒服別グループは `<details>` で**デフォルト折り畳み**。サマリー行に
+  「進 N / 完 N / 無 N / 未 N」表示(ゼロは slate-300 で薄く、非ゼロのみ色付き)。
+  左ボーダーは担当黒服カラー
 - 時系列ログ:
   - /initiatives/{id}/ → 直近 **3件** 表示 + 過去は `<details>` 折り畳み
   - /casts/{id}/ → 直近 **5件** 表示 + 過去は `<details>` 折り畳み
-- /casts/ → **sticky 検索ボックス**(キャスト名インクリメンタルフィルタ JS)。グループは展開のまま
+- /casts/ → **sticky 検索ボックス**(キャスト名インクリメンタルフィルタ JS)。
+  **黒服グループ分けは廃止**、全アクティブを1リスト。**最終接触が新しい順、未接触は最下位**。
+  各行に担当黒服カラータグ + 最終接触日(未接触は rose で強調)
 - /casts/ 末尾に「退店済み」`<details>`(default 閉じる、グレー表示)
+
+**/kurofukus/(黒服別)**:
+- 各黒服カード: 担当N人 / 報告N件 / **アクション終了率%** / 進行中N人 / 未接触N人 / 完了N人
+- カードは**報告件数が多い順**。左ボーダーは担当黒服カラー
+- **アクション終了率** = 担当キャスト × A群施策(3件)のうち done/declined に至ったペア数
+  ÷ (担当人数 × A群施策数)。全期間。100% のみ % を緑、それ以外 slate-800
+- 人数指標は**キャスト単位**で「担当 = 進行中 + 未接触 + 完了」が必ず成立:
+  - 未接触 = A群すべて not_started
+  - 完了 = **バースデー除く**(TikTok + 紹介CP)が全部 done/declined
+    (バースデーは年1回しか動かず永遠に not_started のため判定から除外)
+  - 進行中 = 残り(担当 − 未接触 − 完了)
+- 黒服タップで **/kurofukus/{id}/**(担当キャスト一覧、最終接触が新しい順、
+  各キャストに3施策ステータス + 退店リスクバッジ)
+
+**黒服カラー(全ページ統一)**:
+- build.py の `KUROFUKU_COLORS` が単一情報源。`fetch_all` で kurofuku / casts /
+  quit_risks に `kurofuku_color` を attach、`_macros.html` の `kurofuku_tag` で表示
+- 五上=sky / ひろし=violet / 川田=teal / 鴇田=orange / 向原=lime(落ち着いたトーン)
+- 新黒服追加時は `KUROFUKU_COLORS` にも色を足す(未定義は slate フォールバック)
 
 **色の方針(落ち着いたトーン、ナイトワーク色を出さない)**:
 - ベース: slate(背景 50, テキスト 700-800)
-- progress 系:
-  - in_progress: amber-700
-  - done: emerald-700
-  - declined: rose-50/rose-600(完了の駄目パターン、強くは主張しない)
-  - not_started: slate-400
-- quit_risk:
-  - confirmed: red-700
-  - likely: orange-600
+- progress 系(`_macros.html` status_badge):
+  - in_progress: amber-100/amber-800「進行中」
+  - done: emerald-100/emerald-800「完了」
+  - declined: rose-50/rose-700「無理そう」(完了の駄目パターン、強くは主張しない)
+  - not_started: slate-100/slate-500「未着手」
+- quit_risk バッジ(塗りつぶしで黒服タグと形状を区別、目立たせすぎない):
+  - confirmed: `bg-red-500/90 text-white` + ⚠「退店確定」
+  - likely: `bg-orange-400/90 text-white` + ⚠「退店リスク」(運用上未使用)
+- 数字は ゼロを slate-300 で薄く、非ゼロのみ色付き。`tabular-nums` で桁揃え
 
 **カレンダー(/quit-risks/)**:
 - 今月〜+12ヶ月、過去送り不可
@@ -301,65 +329,58 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 
 ---
 
-## 15. 現在のテストデータ状態(本番運用前のサンプル)
+## 15. 現在のデータ状態(本番運用中)
 
-セッション切替時点のスナップショット:
+> ⚠️ **絶対厳守: `init_db.py --force` を打つな**。本番データが入っている。
+> `--force` は DB を全削除して再シードする。打つと**本番の報告・退店リスクが全消失**する。
+> スキーマ変更が必要なときは `--force` ではなく `ALTER TABLE` 等で対応(過去に
+> expected_quit_date の NULL 化もコード変更のみで対応した実績あり)。
 
-- **えま** (五上/夜): TikTok=in_progress (反応薄い) / 紹介CP=in_progress (1人紹介してくれそう)
-- **はるな** (五上/夜): TikTok=declined (絶対やらないと言われた) ← 4状態モデル動作確認用
-- **りり** (ひろし/夜): quit_risks に likely 登録 / 2026-05-31 / 引き抜き話 / 報告ログにも1件
-- **くう** (川田/夜): status=quit / quit_date=2026-04-30(退店済み一覧確認用)
+2026-05-12 時点(本番運用開始済み):
 
-本番運用直前に `python3 scripts/init_db.py --force` で全部リセット予定。
+- かつてのテストサンプル(えま/はるな/りり/くう)は `init_db.py --force` で
+  リセット済み。**もう存在しない**
+- 2026-05-01〜05-10 の黒服報告を **30件投入済み**(紹介CP / TikTok 中心)
+- 新キャスト **ゆい**(鴇田/昼)を 05-05 報告で追加(シードは41名、現在42名)
+- 退店リスク **2件**:
+  - のん(鴇田/昼): confirmed / 2026-05-15 / 家庭の事情
+  - あすか(鴇田/昼): confirmed / 2026-08-15 / 痩せたので錦に行きたい+卒業イベント打つ予定
+- 最新の正確な状態は DB を直接見る(`ingest.py show-cast` 等)。本書のこの節は
+  スナップショットなので、細部は信用しすぎず必ず実データを確認すること
 
 ---
 
-## 16. デプロイ計画(Step 4、次セッション着手)
+## 16. デプロイ(稼働中)
 
-**まだ未実装**。`.github/workflows/deploy.yml` を作成して GitHub Actions → GitHub Pages に。
+**実装・稼働済み**。`.github/workflows/deploy.yml` で push → GitHub Actions → Pages 自動デプロイ。
 
-**現時点の git 状態(重要)**:
-- `git init` 済みだが **まだ1度もコミットしていない**(`fatal: ... does not have any commits yet`)
-- `.github/workflows/` は空ディレクトリだけ既に存在(`deploy.yml` 未作成)
-- すべて未追跡ファイル
-- Step 4 着手の最初のステップは「初回コミット → GitHub にリポジトリ作成 → push」になる
-- 初回コミットの粒度は「Step 1〜3 一括」で OK(細分化する意義なし、プロジェクト立ち上げ commit として)
+- GitHub リポジトリ: **`matsurika22/imacoco`**(public)
+- 本番URL: **`https://matsurika22.github.io/imacoco/`**
+- `SITE_PASSWORD` は repo Secrets に登録済み(CI がビルド時に注入。クライアントには
+  SHA-256 ハッシュのみ渡る)
+- `main` に push すると Actions が走り、数十秒で本番反映
 
-**公開方針(2026-05-09 確定)**:
-- **public リポジトリ + GitHub Pages(無料)** を採用
-- ユーザーは「`reports.db` を含むソース全体が誰でもダウンロード可能になる」というリスクを**認識した上で承諾済み**
-  - JS パスワードゲートは「閲覧の入り口の鍵」であって「データ自体の暗号化」ではない
-  - URL を知っていてリポジトリも知っている第三者は理論上 `data/reports.db` を直接落として中身を見られる
-- もし将来 private 化したい場合は GitHub Pro($4/月)契約 + Settings 切替で対応可能(ワークフローは変更不要)
-- 公開 URL は `https://<github-username>.github.io/shisaku-tracker/` を想定
+**運用フロー(報告投入後)**:
+1. `ingest.py` で DB 更新(→ INGEST_PLAYBOOK §2 Step 1〜7)
+2. (任意)ローカル確認 `SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py`
+3. **ユーザーに commit/push 確認**(CLAUDE.md §17、勝手に push しない)
+4. OK が出たら `git add data/reports.db` → commit(WHY を書く)→ `git push`
+5. `gh run list` で Actions success を確認
+- ドキュメント/テンプレ変更も同様に commit/push で自動反映
 
-設計案(本書 §10 のプランと整合):
-
-```yaml
-# 概要
-on: push to main
-jobs:
-  build:
-    - checkout
-    - setup-python 3.12
-    - pip install -r requirements.txt
-    - run scripts/build.py with env SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
-    - upload-pages-artifact dist/
-  deploy:
-    - actions/deploy-pages
-```
-
-事前準備:
-1. GitHub にリポジトリ作成(public 推奨。private にすると Pages は GitHub Pro 課金が必要)
-2. リポジトリ Settings → Pages → Source: GitHub Actions
-3. Settings → Secrets and variables → Actions → New repository secret: `SITE_PASSWORD`
-4. push → Actions 緑 → Pages URL が払い出される
-5. 黒服に URL とパスワードを伝達
+**公開方針(2026-05-09 確定、稼働後も維持)**:
+- public リポジトリ + GitHub Pages(無料)
+- `data/reports.db` を含むソース全体が誰でも取得可能。ユーザーはリスクを**承諾済み**
+  - JS パスワードゲートは「閲覧の入り口の鍵」でデータ暗号化ではない
+  - リポジトリを知る第三者は理論上 `data/reports.db` を直接落として中身を見られる
+- private 化したい場合は GitHub Pro 契約 + Settings 切替(ワークフロー変更不要)
 
 注意:
-- `dist/` は gitignore のまま。CI 内でビルドして deploy artifact にする。
-- `data/reports.db` は repo にバイナリで含まれる(運用方針通り)。CI はそれを読んでビルド。
-- `SITE_PASSWORD: changeme` は build.py が拒否するので CI が落ちる(本番事故防止)。
+- `dist/` は gitignore。CI 内でビルドして deploy artifact にする
+- `data/reports.db` は repo にバイナリで含まれる(運用方針通り)。CI はそれを読んでビルド
+- `SITE_PASSWORD: changeme` は build.py が拒否するので CI が落ちる(本番事故防止)
+- パスワード変更は repo Secrets の `SITE_PASSWORD` 更新 → 次 push で再ビルド。
+  全閲覧者の localStorage は旧ハッシュなので再ログインが必要になる
 
 ---
 
@@ -392,3 +413,18 @@ jobs:
 - **/casts/ は検索ボックス必須**(2026/05/09)。グループは折り畳まない(検索があるため)
 - **/casts/{id}/ 報告ログは直近5件 + 過去 details**(2026/05/09)
 - **declined は「完了の駄目パターン」**(2026/05/09)。done と対称的に保護。バースデーでは使わない
+- **退店リスクは常時 confirmed・時期未定OK**(2026/05/11)。本人発言ベースのみ登録、
+  観測(likely)は入れない、温度感を聞かない。詳細 §12 / INGEST_PLAYBOOK §3
+- **/casts/ は黒服グループ廃止 → 最終接触順1リスト + 担当黒服カラータグ**(2026/05/12)。
+  「動きの少ない子を炙り出す」目的に合わせ、未接触を最下位ではなく上げる案も検討したが
+  最終接触新しい順(未接触=最下位)に確定
+- **接触率 → アクション終了率に再定義**(2026/05/12)。変遷: 触れたキャスト÷担当 →
+  報告件数÷(担当×施策) → **done/declined ペア ÷ (担当×A群施策3)**。
+  「1回触れた」ではなく「これ以上できることがない所まで進めた」を成果とみなす
+- **/kurofukus/ 完了判定はバースデー除外**(2026/05/12)。バースデーは年1回しか動かず
+  永遠に not_started なので、TikTok+紹介CP の2施策で完了を判定
+- **declined ラベル「無理だった」→「無理そう」**(2026/05/12)。確定の言い回しが強すぎ、
+  推察ニュアンスに。`_macros.html` / `ingest.py STATUS_LABEL` / INGEST_PLAYBOOK 反映済み
+- **黒服ごとに固有色**(2026/05/12)。build.py `KUROFUKU_COLORS` が単一情報源(§10)
+- **OG/meta タグ追加**(2026/05/12)。LINE 等のリンクプレビューが本文を拾う問題対策。
+  `og:image` は絶対URL必須のため `base.html` にハードコード(リポジトリ移行時は要更新)
