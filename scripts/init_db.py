@@ -49,6 +49,7 @@ CREATE TABLE cast_initiative_status (
   status TEXT NOT NULL DEFAULT 'not_started', -- 'not_started' / 'in_progress' / 'done'
   comment TEXT,
   updated_at TEXT DEFAULT (datetime('now')),
+  event_date TEXT,                            -- バースデー(施策3)開催予定日 YYYY-MM-DD。他施策は未使用
   FOREIGN KEY(cast_id) REFERENCES casts(id),
   FOREIGN KEY(initiative_id) REFERENCES initiatives(id),
   UNIQUE(cast_id, initiative_id)

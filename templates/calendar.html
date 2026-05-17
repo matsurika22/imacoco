@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-xl font-semibold text-slate-700 mb-4">予定</h1>
+
+<section id="view-calendar">
+  <div class="flex items-center justify-between mb-3">
+    <button id="cal-prev"
+            class="px-4 py-2 text-base border border-slate-300 rounded text-slate-700 active:bg-slate-100 disabled:opacity-30">←</button>
+    <div id="cal-label" class="font-semibold text-slate-700"></div>
+    <button id="cal-next"
+            class="px-4 py-2 text-base border border-slate-300 rounded text-slate-700 active:bg-slate-100 disabled:opacity-30">→</button>
+  </div>
+  <div id="cal-grid" class="grid grid-cols-7 gap-1 bg-white rounded-lg border border-slate-200 p-2"></div>
+
+  {# 凡例。Tailwind CDN は HTML 内のクラス文字列をスキャンするため、
+     JS で組み立てる dot 色クラスをここに必ずリテラルで出しておく(でないと色が出ない)。 #}
+  <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+    <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-full bg-red-500"></span>退店確定</span>
+    <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-full bg-orange-500"></span>退店リスク</span>
+    <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>バースデー</span>
+    <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-full bg-emerald-300"></span>バースデー未確定</span>
+  </div>
+  <p class="mt-2 text-[11px] text-slate-400">退店の日付未定は「退店」ページ(ホームの退店リスクから)で確認できます。</p>
+</section>
+
+<script>
+  const EVENTS = {{ calendar_events | tojson }};
+  const TODAY = new Date();
+  TODAY.setHours(0, 0, 0, 0);
+  const MIN = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+  const MAX = new Date(TODAY.getFullYear() + 1, TODAY.getMonth(), 1);
+  let cur = new Date(MIN);
+
+  function dotClass(e) {
+    if (e.kind === "birthday") {
+      return e.confirmed ? "bg-emerald-500" : "bg-emerald-300";
+    }
+    return e.certainty === "confirmed" ? "bg-red-500" : "bg-orange-500";
+  }
+
+  function renderCalendar() {
+    const grid = document.getElementById("cal-grid");
+    const label = document.getElementById("cal-label");
+    label.textContent = `${cur.getFullYear()}年 ${cur.getMonth() + 1}月`;
+    document.getElementById("cal-prev").disabled = (cur <= MIN);
+    document.getElementById("cal-next").disabled = (cur >= MAX);
+
+    grid.innerHTML = "";
+    const headers = ["日", "月", "火", "水", "木", "金", "土"];
+    headers.forEach((h, i) => {
+      const cell = document.createElement("div");
+      cell.className = "text-center text-xs font-semibold text-slate-400 py-1";
+      cell.textContent = h;
+      if (i === 0) cell.classList.add("text-red-400");
+      if (i === 6) cell.classList.add("text-blue-400");
+      grid.appendChild(cell);
+    });
+
+    const first = new Date(cur.getFullYear(), cur.getMonth(), 1);
+    const last = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
+    const startWeekday = first.getDay();
+    for (let i = 0; i < startWeekday; i++) {
+      const empty = document.createElement("div");
+      empty.className = "h-20";
+      grid.appendChild(empty);
+    }
+    for (let d = 1; d <= last.getDate(); d++) {
+      const dateStr = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const isToday = dateStr === `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, "0")}-${String(TODAY.getDate()).padStart(2, "0")}`;
+      const events = EVENTS.filter(e => e.date === dateStr);
+
+      const cell = document.createElement("div");
+      cell.className = `h-20 border border-slate-100 rounded p-1 overflow-hidden ${isToday ? 'bg-slate-100' : ''}`;
+      const num = document.createElement("div");
+      num.className = "text-xs text-slate-500 mb-0.5";
+      num.textContent = d;
+      cell.appendChild(num);
+      events.slice(0, 2).forEach(e => {
+        const a = document.createElement("a");
+        a.href = `{{ root }}casts/${e.cast_id}/`;
+        a.className = "block truncate text-[10px] text-slate-700 active:underline";
+        const dot = document.createElement("span");
+        dot.className = `inline-block w-1.5 h-1.5 rounded-full mr-1 ${dotClass(e)}`;
+        a.appendChild(dot);
+        a.appendChild(document.createTextNode(e.cast));
+        cell.appendChild(a);
+      });
+      if (events.length > 2) {
+        const more = document.createElement("div");
+        more.className = "text-[10px] text-slate-400";
+        more.textContent = `+${events.length - 2}`;
+        cell.appendChild(more);
+      }
+      grid.appendChild(cell);
+    }
+  }
+
+  document.getElementById("cal-prev").addEventListener("click", () => {
+    cur = new Date(cur.getFullYear(), cur.getMonth() - 1, 1);
+    if (cur < MIN) cur = new Date(MIN);
+    renderCalendar();
+  });
+  document.getElementById("cal-next").addEventListener("click", () => {
+    cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    if (cur > MAX) cur = new Date(MAX);
+    renderCalendar();
+  });
+
+  renderCalendar();
+</script>
+{% endblock %}

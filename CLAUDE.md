@@ -65,7 +65,8 @@ shisaku-tracker/
 │   ├── initiative.html
 │   ├── casts.html           ← sticky 検索ボックス + 全1リスト(最終接触順) + 担当黒服タグ
 │   ├── cast.html
-│   ├── quit_risks.html      ← リスト/カレンダータブ切替
+│   ├── quit_risks.html      ← リスト/カレンダータブ切替(下タブからは外した。ホームの退店リスクカードから到達)
+│   ├── calendar.html        ← /calendar/「予定」: 退店(確定日)+バースデー(event_date)統合カレンダー
 │   ├── kurofukus.html       ← 黒服別カード(アクション終了率/進行中/未接触/完了)
 │   ├── kurofuku.html        ← 黒服個別ページ /kurofukus/{id}/(担当キャスト一覧)
 │   └── restaurants.html     ← ナビ非表示、URL 直打ちのみ
@@ -120,7 +121,7 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 | `kurofukus` | 黒服マスタ | name UNIQUE |
 | `casts` | キャストマスタ | name UNIQUE / `kurofuku_id` FK / `shift` 必須(`night`/`day`)/ `status`(`active`/`quit`)/ `quit_date` |
 | `initiatives` | 施策マスタ | category: `cast` / `quit_risk` / `standalone` |
-| `cast_initiative_status` | 現在の進捗(A群施策のみ) | UNIQUE(cast_id, initiative_id) |
+| `cast_initiative_status` | 現在の進捗(A群施策のみ) | UNIQUE(cast_id, initiative_id) / `event_date`(バースデー施策3の開催予定日 YYYY-MM-DD、他施策は未使用。2026-05-18 `ALTER TABLE` で追加) |
 | `reports` | 全報告ログ(時系列) | quit_risk と standalone は通常 reports に書かれないが、quit_risk については `add-quit-risk` で書く |
 | `quit_risks` | 退店リスク(専用) | UNIQUE(cast_id) / `is_resolved` |
 | `restaurants` | ひろし顔きき計画(ガワだけ) | 現在は未使用 |
@@ -135,12 +136,20 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 |---|---|---|---|---|---|
 | 1 | TikTok動画買取 | cast | いけそう/撮影調整中 | データ受領 | **使う**(やらないと言われた) |
 | 2 | 紹介CPの周知 | cast | いけそう | 実際に紹介してくれた | **使う**(断られた) |
-| 3 | バースデーイベント開催のお願い | cast | 打診したが調整中 | 日程確定 | **使わない**(「やらない」も in_progress 据え置き) |
+| 3 | バースデーイベント開催のお願い | cast | 打診したが調整中(開催希望だが未確定) | **開催月が決まった**(「8月にやる」レベル) | **使わない**(「やらない」も in_progress 据え置き) |
 | 4 | ひろしさん顔きき計画 | standalone | (報告対象外) | (報告対象外) | — |
 | 5 | 辞めそうな子の見える化 | quit_risk | (`add-quit-risk` を使う) | — | — |
 
-**バースデーの特別ルール**: 「やらない」と言われても `declined` にせず `in_progress` 据え置き。
-コンサルとしては引き続き説得の余地ありとみなす。「日程確定」のみ `done` 昇格。
+**バースデーの特別ルール**:
+- 「やらない」と言われても `declined` にせず `in_progress` 据え置き。コンサルとしては
+  引き続き説得の余地ありとみなす(declined は使わない)。
+- **完了条件は「開催月が決まったら」**(2026-05-18 ユーザー決定で「日程確定のみ」から緩和)。
+  「8月にやる」レベルで `done`。希望止まり・未確定(例「来年3月にやれるように」)は
+  `in_progress` 据え置き。
+- 開催日は `cast_initiative_status.event_date`(YYYY-MM-DD)に構造化保存し、
+  `/calendar/`(予定タブ)に載せる。**日が未記載なら月初(1日)で登録**。
+  投入時は `add-report`/`set-status` の `--event-date` を使う(§8)。
+  `done`=確定として濃 emerald、`done` 以外=未確定として薄 emerald で表示。
 
 ---
 
@@ -172,8 +181,10 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 - `show-status --cast X --initiative N`
 
 報告投入:
-- `add-report --date YYYY-MM-DD --cast X --initiative N --by KUROFUKU --content "..." [--reaction positive|neutral|negative] [--status not_started|declined|in_progress|done] [--comment "..."] [--raw "..."] [--force]`
-- `set-status --cast X --initiative N --status ... [--comment "..."] [--force]`
+- `add-report --date YYYY-MM-DD --cast X --initiative N --by KUROFUKU --content "..." [--reaction positive|neutral|negative] [--status not_started|declined|in_progress|done] [--comment "..."] [--event-date YYYY-MM-DD] [--raw "..."] [--force]`
+- `set-status --cast X --initiative N --status ... [--comment "..."] [--event-date YYYY-MM-DD] [--force]`
+  - `--event-date` はバースデー(施策3)専用。`/calendar/` に載る開催予定日。日未記載なら月初。
+    既存と同 status で `--event-date` だけ渡すと `updated_at` を触らず日付のみ更新できる
 - `add-quit-risk --cast X --certainty confirmed|likely [--date YYYY-MM-DD] [--reason "..."] --by KUROFUKU [--report-date YYYY-MM-DD] [--content "..."] [--raw "..."]`
 - `update-quit-risk --cast X [--certainty ...] [--date ...] [--reason ...] [--resolve]`
 
@@ -221,7 +232,11 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 
 **スマホ専用設計**:
 - `max-w-md mx-auto`(28rem)で全ページ幅統一。レスポンシブ拡張(`sm:`/`md:`/`lg:`)は使わない
-- 上部ナビなし、**下部固定タブ**(`<nav>` を `fixed bottom-0`)。`safe-area-inset-bottom` 対応
+- 上部ナビなし、**下部固定タブ4分割**(`<nav>` を `fixed bottom-0`、`grid-cols-4`)。
+  `safe-area-inset-bottom` 対応。タブは **ホーム / キャスト / 予定 / 黒服**
+  (2026-05-18: 「退店」タブを「予定」=`/calendar/` に差し替え。退店は base.html の
+  `is_calendar` で判定)。`/quit-risks/` はナビから外したが**ホームの退店リスクカード**
+  (index.html)から到達できるので孤立しない
 - タップ領域 44px 以上(`py-3` 以上)
 - 入力欄は `text-base`(16px)で iOS の自動ズーム抑制
 - 本文は `text-sm` / `text-base` 主体。`text-xs` は補助のみ
@@ -269,9 +284,19 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
   - likely: `bg-orange-400/90 text-white` + ⚠「退店リスク」(運用上未使用)
 - 数字は ゼロを slate-300 で薄く、非ゼロのみ色付き。`tabular-nums` で桁揃え
 
-**カレンダー(/quit-risks/)**:
+**カレンダー(/quit-risks/ 内タブ。従来どおり維持)**:
 - 今月〜+12ヶ月、過去送り不可
 - vanilla JS で月ごとに描画、各日に max 2件まで表示 + 「+N」省略表示
+
+**/calendar/(下タブ「予定」、2026-05-18 新設)**:
+- `templates/calendar.html`。build.py `context_calendar` が単一情報源
+- 退店(`quit_risks` の確定日)+ バースデー(`cast_initiative_status.event_date`、
+  アクティブキャストのみ)を**1つのカレンダーに集約**。各セルからキャスト個別へリンク
+- 退店確定=`bg-red-500`、退店リスク=`bg-orange-500`(運用上未使用)、
+  バースデー確定(status=done)=`bg-emerald-500`、バースデー未確定(done以外)=`bg-emerald-300`
+- 退店の日付未定はここには出さない(従来どおり /quit-risks/ 側)
+- /quit-risks/ 内カレンダーとはコード独立(quit_risks.html / context_quit_risks は不変)
+- Tailwind CDN 対策で dot 色クラスは calendar.html の凡例にリテラルで必ず出す(§10 色方針と同様)
 
 ---
 
@@ -428,3 +453,11 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 - **黒服ごとに固有色**(2026/05/12)。build.py `KUROFUKU_COLORS` が単一情報源(§10)
 - **OG/meta タグ追加**(2026/05/12)。LINE 等のリンクプレビューが本文を拾う問題対策。
   `og:image` は絶対URL必須のため `base.html` にハードコード(リポジトリ移行時は要更新)
+- **バースデー完了条件を「日程確定のみ」→「開催月が決まったら」に緩和**(2026/05/18)。
+  「8月にやる」レベルで done。希望止まり・未確定は in_progress 据え置き。§6 参照
+- **バースデー開催日を構造化保存**(2026/05/18)。前回「メモ運用のまま」だったが
+  カレンダー化のため方針変更。`cast_initiative_status.event_date` を `ALTER TABLE` で
+  追加(本番DB稼働中につき `--force` 不使用、§15)。投入は `--event-date`(§8)
+- **下タブ「退店」→「予定」差し替え + /calendar/ 新設**(2026/05/18)。退店+バースデーを
+  1カレンダーに集約。/quit-risks/ はナビから外したがホームの退店リスクカードから到達。
+  §10 / §3 参照

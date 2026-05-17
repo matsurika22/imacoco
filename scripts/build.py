@@ -98,7 +98,7 @@ def fetch_all(conn: sqlite3.Connection):
     for c in casts:
         c["kurofuku_color"] = kurofuku_color(c["kurofuku"])
     statuses = [dict(r) for r in conn.execute(
-        "SELECT cast_id, initiative_id, status, comment, updated_at "
+        "SELECT cast_id, initiative_id, status, comment, updated_at, event_date "
         "FROM cast_initiative_status"
     )]
     reports = [dict(r) for r in conn.execute(
@@ -382,6 +382,51 @@ def context_quit_risks(data, today):
     }
 
 
+def context_calendar(data, today):
+    """/予定/ 用。退店(確定日)とバースデー(開催予定日)を1つのカレンダーに載せる。
+    バースデー日付は cast_initiative_status.event_date(施策3)を単一情報源にする。
+    退店リスク機能側(context_quit_risks)はそのまま、ここは独立に集約するだけ。"""
+    active_casts = {c["id"]: c["name"] for c in data["casts"] if c["status"] == "active"}
+
+    birthday_ini = next(
+        (i for i in data["initiatives"] if i["name"] == "バースデーイベント開催のお願い"),
+        None,
+    )
+    birthday_id = birthday_ini["id"] if birthday_ini else None
+
+    events = []
+
+    # 退店(確定日のみ。未定は /退店/ 側に出るのでカレンダーには載せない)
+    for q in data["quit_risks"]:
+        if q["expected_quit_date"]:
+            events.append({
+                "date": q["expected_quit_date"],
+                "cast": q["cast"],
+                "cast_id": q["cast_id"],
+                "kind": "quit",
+                "certainty": q["certainty"],   # confirmed / likely
+            })
+
+    # バースデー(event_date 付き・アクティブキャストのみ)
+    if birthday_id is not None:
+        for s in data["statuses"]:
+            if (s["initiative_id"] == birthday_id and s.get("event_date")
+                    and s["cast_id"] in active_casts):
+                events.append({
+                    "date": s["event_date"],
+                    "cast": active_casts[s["cast_id"]],
+                    "cast_id": s["cast_id"],
+                    "kind": "birthday",
+                    # done=開催確定、それ以外(in_progress 等)=未確定
+                    "confirmed": s["status"] == "done",
+                })
+
+    return {
+        "title": "予定",
+        "calendar_events": events,
+    }
+
+
 def context_kurofukus(data, today):
     active_casts = [c for c in data["casts"] if c["status"] == "active"]
     # A群施策(category='cast')。退店リスクは「必ず発生する性質ではない」ため分母から除外。
@@ -659,6 +704,11 @@ def main() -> int:
     render(env, "quit_risks.html", DIST_DIR / "quit-risks" / "index.html",
            context_quit_risks(data, today),
            "../", pw_hash, build_time, current_page="quit_risks")
+
+    # /calendar/  (予定: 退店 + バースデーを1つのカレンダーに集約)
+    render(env, "calendar.html", DIST_DIR / "calendar" / "index.html",
+           context_calendar(data, today),
+           "../", pw_hash, build_time, current_page="calendar")
 
     # /kurofukus/
     render(env, "kurofukus.html", DIST_DIR / "kurofukus" / "index.html",

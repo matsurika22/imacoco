@@ -278,13 +278,16 @@ STATUS_LABEL = {
 TERMINAL_STATUSES = ("done", "declined")
 
 
-def _upsert_status(conn, cast_id: int, initiative_id: int, new_status: str, comment, force: bool):
+def _upsert_status(conn, cast_id: int, initiative_id: int, new_status: str, comment,
+                   force: bool, event_date=None):
     """
     cast_initiative_status を upsert する。
       - 既存 status が TERMINAL_STATUSES のいずれかで、別の状態に戻す場合は force 必須
         (done / declined は「終わった案件」なので簡単に巻き戻さない)
       - 既存 status == new_status なら updated_at は触らず、comment のみ最新で上書き
       - それ以外は status / comment / updated_at を更新
+      - event_date(バースデー開催予定日)は指定時のみ上書き。None なら既存維持。
+        status の変化有無に関わらず、毎回最新で保持する(/予定/ カレンダー用)
     戻り値: 何が起きたかを示す説明文字列
     """
     row = conn.execute(
@@ -294,8 +297,9 @@ def _upsert_status(conn, cast_id: int, initiative_id: int, new_status: str, comm
 
     if row is None:
         conn.execute(
-            "INSERT INTO cast_initiative_status(cast_id, initiative_id, status, comment) VALUES (?, ?, ?, ?)",
-            (cast_id, initiative_id, new_status, comment),
+            "INSERT INTO cast_initiative_status(cast_id, initiative_id, status, comment, event_date) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (cast_id, initiative_id, new_status, comment, event_date),
         )
         return f"new → {STATUS_LABEL.get(new_status, new_status)}"
 
@@ -305,6 +309,13 @@ def _upsert_status(conn, cast_id: int, initiative_id: int, new_status: str, comm
         new_label = STATUS_LABEL.get(new_status, new_status)
         die(f"既に「{old_label}」です。「{new_label}」に変更するには --force を付けてください。\n"
             f"  (現在の comment: {row['comment'] or ''})")
+
+    # event_date は status 変化に関わらず、指定があれば常に最新で保持(None は既存維持)
+    if event_date is not None:
+        conn.execute(
+            "UPDATE cast_initiative_status SET event_date = ? WHERE cast_id = ? AND initiative_id = ?",
+            (event_date, cast_id, initiative_id),
+        )
 
     if old_status == new_status:
         if comment is not None:
@@ -360,7 +371,8 @@ def cmd_add_report(args):
 
     status_msg = "(status未指定 → cast_initiative_status は更新せず)"
     if args.status:
-        status_msg = _upsert_status(conn, cast["id"], ini["id"], args.status, args.comment, args.force)
+        status_msg = _upsert_status(conn, cast["id"], ini["id"], args.status, args.comment,
+                                    args.force, getattr(args, "event_date", None))
 
     conn.commit()
     print(f"報告を追加: id={report_id} ({args.date} {cast['name']} × {ini['name']} by {kuro['name']})")
@@ -375,7 +387,8 @@ def cmd_set_status(args):
         die("set-status は A 群施策(category='cast')のみ対象です。")
     if args.status not in VALID_STATUSES:
         die(f"status の値が不正: {args.status}")
-    msg = _upsert_status(conn, cast["id"], ini["id"], args.status, args.comment, args.force)
+    msg = _upsert_status(conn, cast["id"], ini["id"], args.status, args.comment,
+                         args.force, getattr(args, "event_date", None))
     conn.commit()
     print(f"{cast['name']} × {ini['name']}: {msg}")
 
@@ -580,6 +593,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_ar.add_argument("--status", choices=list(VALID_STATUSES),
                       help="指定すると cast_initiative_status を upsert する")
     p_ar.add_argument("--comment", help="status と一緒に保存する一言コメント")
+    p_ar.add_argument("--event-date", dest="event_date",
+                      help="バースデー(施策3)開催予定日 YYYY-MM-DD。/予定/ カレンダーに載る")
     p_ar.add_argument("--raw", help="元の報告テキスト全体")
     p_ar.add_argument("--force", action="store_true",
                       help="重複報告 / done を巻き戻すケースで必要")
@@ -589,6 +604,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_set.add_argument("--initiative", required=True)
     p_set.add_argument("--status", required=True, choices=list(VALID_STATUSES))
     p_set.add_argument("--comment")
+    p_set.add_argument("--event-date", dest="event_date",
+                       help="バースデー(施策3)開催予定日 YYYY-MM-DD")
     p_set.add_argument("--force", action="store_true")
 
     p_aq = subs.add_parser("add-quit-risk")
