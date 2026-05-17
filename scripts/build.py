@@ -278,35 +278,33 @@ def context_initiative(data, ini, today):
 
     reports = [r for r in data["reports"] if r["initiative_id"] == ini["id"]]
 
-    # バースデー(施策3)のみ: 退店リスクページと同じ「現状/リスト/カレンダー」タブ用の
-    # データを追加。リストは 確定(done) / 未確定(in_progress+日付) / 日付未定 の3分割。
+    # バースデー(施策3)のみ: 退店リスクページと同じ「進捗/リスト/カレンダー」タブ用の
+    # データ。リストは日付あり(確定+未確定をまとめ月で区切る)+ 日付未定。
     is_birthday = ini["name"] == "バースデーイベント開催のお願い"
-    bday_confirmed, bday_tentative, bday_undated, bday_calendar = [], [], [], []
+    bday_dated, bday_undated, bday_calendar = [], [], []
     if is_birthday:
         for c in active_casts:
             s = status_for(data["statuses"], c["id"], ini["id"])
             if not s or s["status"] not in ("in_progress", "done"):
                 continue
             ev = s.get("event_date")
+            confirmed = s["status"] == "done"
             base = {
                 "cast": c["name"], "cast_id": c["id"],
                 "kurofuku": c["kurofuku"], "kurofuku_color": c["kurofuku_color"],
-                "comment": s["comment"] or "",
+                "comment": s["comment"] or "", "confirmed": confirmed,
             }
             if ev:
-                row = {**base, "date": ev, "days_until": _days_until(ev, today)}
-                if s["status"] == "done":
-                    bday_confirmed.append(row)
-                else:
-                    bday_tentative.append(row)
+                du = _days_until(ev, today)
                 bday_calendar.append({
                     "date": ev, "cast": c["name"], "cast_id": c["id"],
-                    "kind": "birthday", "confirmed": s["status"] == "done",
+                    "kind": "birthday", "confirmed": confirmed,
                 })
+                if du >= 0:  # 過ぎた予定日はリストから除外(カレンダーには残す)
+                    bday_dated.append({**base, "date": ev, "days_until": du})
             else:
-                bday_undated.append({**base, "confirmed": s["status"] == "done"})
-        bday_confirmed.sort(key=lambda r: r["date"])
-        bday_tentative.sort(key=lambda r: r["date"])
+                bday_undated.append(base)
+        bday_dated.sort(key=lambda r: r["date"])
 
     return {
         "title": ini["name"],
@@ -320,8 +318,7 @@ def context_initiative(data, ini, today):
         },
         "reports": reports,
         "is_birthday": is_birthday,
-        "bday_confirmed": bday_confirmed,
-        "bday_tentative": bday_tentative,
+        "bday_months": _group_by_month(bday_dated),
         "bday_undated": bday_undated,
         "bday_calendar": bday_calendar,
     }
@@ -392,11 +389,15 @@ def context_quit_risks(data, today):
     undated = []
     for q in qr_sorted:
         if q["expected_quit_date"]:
-            d = datetime.strptime(q["expected_quit_date"], "%Y-%m-%d").date()
-            days = (d - today).days
-            dated.append({**q, "days_until": days})
+            days = _days_until(q["expected_quit_date"], today)
+            if days < 0:
+                continue  # 過ぎた予定日はリストから除外(/予定/ と整合)
+            dated.append({**q, "days_until": days, "date": q["expected_quit_date"]})
         else:
             undated.append(q)
+    # 日付近い順 → 月区切り
+    dated.sort(key=lambda r: r["date"])
+    dated_months = _group_by_month(dated)
 
     calendar_data = [
         {
@@ -411,7 +412,7 @@ def context_quit_risks(data, today):
 
     return {
         "title": "退店リスク",
-        "dated": dated,
+        "dated_months": dated_months,
         "undated": undated,
         "calendar_data": calendar_data,
     }
@@ -421,6 +422,19 @@ def _days_until(date_str, today):
     """'YYYY-MM-DD' と today(date)から残り日数(整数)。過去は負。"""
     d = datetime.strptime(date_str[:10], "%Y-%m-%d").date()
     return (d - today).days
+
+
+def _group_by_month(rows):
+    """date(YYYY-MM-DD)を持つ行リスト(日付昇順前提)を月ごとに区切る。
+    戻り値: [{"label": "YYYY年M月", "rows": [...]}, ...] を時系列順で。"""
+    out = []
+    for r in rows:
+        ym = r["date"][:7]
+        if not out or out[-1]["ym"] != ym:
+            y, m = ym.split("-")
+            out.append({"ym": ym, "label": f"{y}年{int(m)}月", "rows": []})
+        out[-1]["rows"].append(r)
+    return out
 
 
 def _birthday_initiative_id(data):
@@ -448,17 +462,19 @@ def context_calendar(data, today):
     # 退店
     for q in data["quit_risks"]:
         if q["expected_quit_date"]:
+            du = _days_until(q["expected_quit_date"], today)
             events.append({
                 "date": q["expected_quit_date"], "cast": q["cast"],
                 "cast_id": q["cast_id"], "kind": "quit", "certainty": q["certainty"],
             })
-            list_dated.append({
-                "date": q["expected_quit_date"],
-                "days_until": _days_until(q["expected_quit_date"], today),
-                "cast": q["cast"], "cast_id": q["cast_id"],
-                "kurofuku": q["kurofuku"], "kurofuku_color": q["kurofuku_color"],
-                "kind": "quit", "certainty": q["certainty"], "detail": q["reason"] or "",
-            })
+            # 過ぎた予定日はリストから除外(カレンダーには残す)
+            if du >= 0:
+                list_dated.append({
+                    "date": q["expected_quit_date"], "days_until": du,
+                    "cast": q["cast"], "cast_id": q["cast_id"],
+                    "kurofuku": q["kurofuku"], "kurofuku_color": q["kurofuku_color"],
+                    "kind": "quit", "certainty": q["certainty"], "detail": q["reason"] or "",
+                })
         else:
             list_undated.append({
                 "cast": q["cast"], "cast_id": q["cast_id"],
@@ -476,18 +492,19 @@ def context_calendar(data, today):
             c = active_casts[s["cast_id"]]
             confirmed = s["status"] == "done"
             if s.get("event_date"):
+                du = _days_until(s["event_date"], today)
                 events.append({
                     "date": s["event_date"], "cast": c["name"],
                     "cast_id": c["id"], "kind": "birthday", "confirmed": confirmed,
                 })
-                list_dated.append({
-                    "date": s["event_date"],
-                    "days_until": _days_until(s["event_date"], today),
-                    "cast": c["name"], "cast_id": c["id"],
-                    "kurofuku": c["kurofuku"], "kurofuku_color": c["kurofuku_color"],
-                    "kind": "birthday", "confirmed": confirmed,
-                    "detail": s["comment"] or "",
-                })
+                if du >= 0:
+                    list_dated.append({
+                        "date": s["event_date"], "days_until": du,
+                        "cast": c["name"], "cast_id": c["id"],
+                        "kurofuku": c["kurofuku"], "kurofuku_color": c["kurofuku_color"],
+                        "kind": "birthday", "confirmed": confirmed,
+                        "detail": s["comment"] or "",
+                    })
             else:
                 list_undated.append({
                     "cast": c["name"], "cast_id": c["id"],
@@ -501,7 +518,7 @@ def context_calendar(data, today):
     return {
         "title": "予定",
         "calendar_events": events,
-        "list_dated": list_dated,
+        "list_months": _group_by_month(list_dated),
         "list_undated": list_undated,
     }
 

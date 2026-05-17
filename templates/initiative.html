@@ -48,19 +48,12 @@
 
 <!-- リストビュー(確定 / 未確定 / 日付未定) -->
 <section id="view-list" class="hidden">
-  {% if bday_confirmed %}
-  <h2 class="text-xs font-semibold text-slate-500 mb-2">確定(開催月決定・近い順)</h2>
+  {% for mo in bday_months %}
+  <h2 class="text-xs font-semibold text-slate-500 mb-2">{{ mo.label }}</h2>
   <div class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 mb-6 overflow-hidden">
-    {% for e in bday_confirmed %}{{ bday_row(root, e, true, true) }}{% endfor %}
+    {% for e in mo.rows %}{{ bday_row(root, e, true, e.confirmed) }}{% endfor %}
   </div>
-  {% endif %}
-
-  {% if bday_tentative %}
-  <h2 class="text-xs font-semibold text-slate-500 mb-2">未確定(日付あり・近い順)</h2>
-  <div class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 mb-6 overflow-hidden">
-    {% for e in bday_tentative %}{{ bday_row(root, e, true, false) }}{% endfor %}
-  </div>
-  {% endif %}
+  {% endfor %}
 
   {% if bday_undated %}
   <h2 class="text-xs font-semibold text-slate-500 mb-2">日付未定</h2>
@@ -69,7 +62,7 @@
   </div>
   {% endif %}
 
-  {% if not bday_confirmed and not bday_tentative and not bday_undated %}
+  {% if not bday_months and not bday_undated %}
   <p class="text-sm text-slate-400">バースデーの予定はまだありません。</p>
   {% endif %}
 

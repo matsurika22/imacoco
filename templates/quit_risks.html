@@ -17,31 +17,31 @@
 
 <!-- リストビュー -->
 <section id="view-list">
-  {% if dated %}
-  <h2 class="text-xs font-semibold text-slate-500 mb-2">日付確定</h2>
+  {% for mo in dated_months %}
+  <h2 class="text-xs font-semibold text-slate-500 mb-2">{{ mo.label }}</h2>
   <div class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 mb-6 overflow-hidden">
-    {% for q in dated %}
-    <a href="{{ root }}casts/{{ q.cast_id }}/" class="block px-4 py-3 active:bg-slate-50">
-      <div class="flex items-center gap-2 mb-1 flex-wrap">
-        {{ quit_risk_badge(q.certainty) }}
-        <span class="font-medium text-slate-700">{{ q.cast }}</span>
-        {{ kurofuku_tag(q.kurofuku, q.kurofuku_color) }}
-      </div>
-      <div class="flex items-baseline gap-2">
-        <span class="text-base font-semibold tabular-nums {{ 'text-red-700' if q.certainty == 'confirmed' else 'text-orange-700' }}">
-          {{ q.expected_quit_date }}
-        </span>
+    {% for q in mo.rows %}
+    <div>
+      <div class="flex items-baseline gap-2 px-4 pt-3">
+        <span class="text-lg font-bold tabular-nums {{ 'text-red-700' if q.certainty == 'confirmed' else 'text-orange-700' }}">{{ q.expected_quit_date }}</span>
         <span class="text-xs text-slate-500 tabular-nums">
           {% if q.days_until > 0 %}<span class="font-medium">{{ q.days_until }}</span>日後
           {% elif q.days_until == 0 %}<span class="font-medium text-rose-600">今日</span>
           {% else %}<span class="font-medium">{{ -q.days_until }}</span>日経過{% endif %}
         </span>
       </div>
-      {% if q.reason %}<div class="text-sm text-slate-500 mt-1">{{ q.reason }}</div>{% endif %}
-    </a>
+      <a href="{{ root }}casts/{{ q.cast_id }}/" class="block px-4 pt-1 pb-3 active:bg-slate-50">
+        <div class="flex items-center gap-2 flex-wrap">
+          {{ quit_risk_badge(q.certainty) }}
+          <span class="font-medium text-slate-700">{{ q.cast }}</span>
+          {{ kurofuku_tag(q.kurofuku, q.kurofuku_color) }}
+        </div>
+        {% if q.reason %}<div class="text-sm text-slate-500 mt-1">{{ q.reason }}</div>{% endif %}
+      </a>
+    </div>
     {% endfor %}
   </div>
-  {% endif %}
+  {% endfor %}
 
   {% if undated %}
   <h2 class="text-xs font-semibold text-slate-500 mb-2">日付未定</h2>
@@ -59,7 +59,7 @@
   </div>
   {% endif %}
 
-  {% if not dated and not undated %}
+  {% if not dated_months and not undated %}
   <p class="text-sm text-slate-400">退店リスク登録は現在ありません。</p>
   {% endif %}
 </section>

@@ -292,9 +292,12 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 - `templates/calendar.html`。build.py `context_calendar` が単一情報源
 - **退店リスクページと同じ「リスト / カレンダー」2タブ**(デフォルト=リスト)
 - 退店(`quit_risks`)+ バースデー(`cast_initiative_status.event_date`、アクティブのみ)を集約
-  - リスト: `list_dated`(日付近い順)/ `list_undated`(日付未定)。各行は日付を
-    リンクの**外・上部に大きく**出し、その下のリンクにバッジ+名前+黒服タグ+メモ
+  - リスト: `list_months`(**月ごとに見出しで区切る** `_group_by_month`)/ `list_undated`。
+    各行は日付を リンクの**外・上部に大きく**出し、その下のリンクにバッジ+名前+黒服タグ+メモ。
+    **予定日が過ぎた行はリストから除外**(カレンダーには残す)
   - カレンダー: `calendar_events` を月グリッド描画(各セルからキャスト個別へリンク)
+  - 同じ「月区切り + 過去はリストから除外」を /quit-risks/ リスト(`dated_months`)と
+    /initiatives/3/ リスト(`bday_months`)にも適用(全リスト統一、2026-05-18)
 - 色: 退店確定=`bg-red-500`、退店リスク=`bg-orange-500`(運用上未使用)、
   バースデー確定(status=done)=`bg-emerald-500`、バースデー未確定(done以外)=`bg-emerald-300`
 - バッジ文言は `_macros.html`: 退店=`quit_risk_badge`、バースデー=`birthday_badge`
@@ -483,3 +486,9 @@ SITE_PASSWORD=test1234 .venv/bin/python scripts/build.py
 - **バースデーのメモは日付を書かない運用に**(2026/05/18)。日付カラム(event_date)が
   無かった頃の名残でメモに年月が重複していたのを解消。メモ(content/comment)は状態のみ
   (全件「開催予定」)、日付は event_date 一本化。バッジ文言は「バースデー確定/未確定」
+- **全リスト月区切り + 過去はリストから除外**(2026/05/18)。/予定・/initiatives/3/・
+  /quit-risks/ のリストを月見出しで区切り、予定日が過ぎた行はリストから消す
+  (カレンダーには残す)。`_group_by_month` 共通。§10 参照
+- **確定退店日が過ぎた人は都度確認で cast quit**(2026/05/18)。自動退店化はしない。
+  Claude は未解消 quit_risks の確定日経過を見つけたらユーザーに確認 → OK で cast quit
+  (例: のん 2026-05-15 を本日処理)。INGEST_PLAYBOOK §8-1 参照
