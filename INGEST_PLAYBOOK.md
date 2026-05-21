@@ -290,6 +290,21 @@ DB 更新は GitHub Pages に**自動では反映されない**。push して初
 > 履歴のメモと現状サマリは同じ文章で良いことが多い。
 > 迷ったら同じ文章を両方に入れて OK。
 
+### 5-α. ステータスの言い換えをメモに書かない(2026-05-21 ユーザー指摘)
+
+`status=declined` / `status=done` のとき、`content` / `comment` に **status と同義**の
+言い換えを書かない。一覧画面では status バッジと並んで表示されるので、
+「無理そう / TikTok出演できないとのこと」のような重複は情報量ゼロ。
+
+| 悪い(status と同義) | 良い(理由・状況) |
+|---|---|
+| 「TikTok出演できないとのこと」(declined) | 「顔出しNG」「動画未経験」 |
+| 「紹介できないとのこと」(declined) | 「友達にキャバ勤めを伝えてなく紹介困難」「みんな働いてる&岡崎で難しい」 |
+| 「達成しました」(done) | 「動画データ受領」「友達◯◯さん体験来店」 |
+
+理由が報告本文に書かれていないときは、原文寄りで短く(無理に補足しない)。
+迷ったらメモは最小限。判断材料は status バッジが持つ。
+
 ---
 
 ## 6. 退店リスク 1サイクル例(のん/あすか)
@@ -363,9 +378,20 @@ Claude の応答(理想形):
 `add-report` は同日に既に同件があると `--force` を要求してエラーになる。
 
 **Claude の動き:**
-1. ユーザーに状況を伝え「同じ日に既に同じ報告があります。**新しい内容で上書き**しますか? それとも**別の出来事として2件目を残す**?」と確認
-2. 上書き → `--force` 付きで内容更新(report 1件のまま、content/reaction 上書き)
-3. 別件として残す → `--force` 付きでもう1件 add-report(report 2件になる)
+1. ユーザーに状況を伝え「同じ日に既に同じ報告があります。**メモを差し替える**(古い行を消す)? それとも**別の出来事として2件目を残す**?」と確認
+2. 別件として残す → `--force` 付きでもう1件 add-report(report 2件、両方残る)
+3. 差し替え → `--force` で新規 add-report したあと、**古い行を SQL で削除**する二段階:
+   ```bash
+   # 1) 新メモを add-report --force(reports に新規行が増え、status comment は新文言で上書き)
+   .venv/bin/python scripts/ingest.py add-report --date YYYY-MM-DD --cast X \
+     --initiative N --by KUROFUKU --content "新メモ" --comment "新メモ" \
+     --reaction ... --status ... --raw "..." --force
+   # 2) 旧 report を id 指定で削除(誤削除防止のため report_date/cast_id も合わせて確認)
+   sqlite3 data/reports.db "DELETE FROM reports WHERE id=<旧ID> AND report_date='YYYY-MM-DD' AND cast_id=<castid> AND content='<旧文>';"
+   ```
+   - `cast_initiative_status.comment` は新メモで上書き済みなので一覧表示はクリーンになる
+   - 将来 `delete-report` / `update-report` CLI を実装したらこの二段階を1コマンドに置き換える
+   - 直 SQL 削除前に `sqlite3 ... "SELECT id, report_date, content FROM reports WHERE id=<旧ID>;"` で必ず対象を目視確認
 
 ### 7-2. 完了/無理(done / declined)から別状態への巻き戻し
 
